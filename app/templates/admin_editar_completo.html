@@ -11,6 +11,7 @@
 
         <div class="card shadow-sm p-4">
             {# O formulário envia o POST para a rota de edição completa #}
+            {# ESTE FORMULÁRIO SERÁ INTERCEPTADO PELO LISTENER UNIVERSAL DO BASE.HTML #}
             <form action="{{ url_for('main.admin_editar_completo', id=pedido.id) }}" method="POST">
                 
                 <h4 class="mb-3 text-secondary">Detalhes do Pedido #{{ pedido.id }} - {{ pedido.autor.nome_uvis }}</h4>
@@ -36,37 +37,37 @@
                         </div>
                         
                         <div class="col-md-5">
-    <label for="foco" class="form-label small">Foco Principal da Operação</label>
-    <select name="foco" id="foco" class="form-select" required>
-        <option value="" disabled 
-            {% if not pedido.foco %}selected{% endif %}>
-            Selecione o tipo de foco...
-        </option>
-        
-        {# Opções do Foco #}
-        {% set focos = [
-            'Imóvel Abandonado',
-            'Piscina / Caixa D\'água',
-            'Terreno Baldio',
-            'Ponto Estratégico (PE)'
-        ] %}
-        
-        {% for foco_opcao in focos %}
-        <option value="{{ foco_opcao }}" 
-            {% if pedido.foco == foco_opcao %}selected{% endif %}>
-            {{ foco_opcao }}
-        </option>
-        {% endfor %}
-        
-        {# Se o foco atual não estiver na lista (ex: valor personalizado antigo), exibe ele como selecionado #}
-        {% if pedido.foco and pedido.foco not in focos %}
-        <option value="{{ pedido.foco }}" selected>
-            {{ pedido.foco }} (Valor Personalizado Atual)
-        </option>
-        {% endif %}
+                            <label for="foco" class="form-label small">Foco Principal da Operação</label>
+                            <select name="foco" id="foco" class="form-select" required>
+                                <option value="" disabled 
+                                    {% if not pedido.foco %}selected{% endif %}>
+                                    Selecione o tipo de foco...
+                                </option>
+                                
+                                {# Opções do Foco #}
+                                {% set focos = [
+                                    'Imóvel Abandonado',
+                                    'Piscina / Caixa D\'água',
+                                    'Terreno Baldio',
+                                    'Ponto Estratégico (PE)'
+                                ] %}
+                                
+                                {% for foco_opcao in focos %}
+                                <option value="{{ foco_opcao }}" 
+                                    {% if pedido.foco == foco_opcao %}selected{% endif %}>
+                                    {{ foco_opcao }}
+                                </option>
+                                {% endfor %}
+                                
+                                {# Se o foco atual não estiver na lista (ex: valor personalizado antigo), exibe ele como selecionado #}
+                                {% if pedido.foco and pedido.foco not in focos %}
+                                <option value="{{ pedido.foco }}" selected>
+                                    {{ pedido.foco }} (Valor Personalizado Atual)
+                                </option>
+                                {% endif %}
 
-    </select>
-</div>
+                            </select>
+                        </div>
                     </div>
                 </fieldset>
 
@@ -80,7 +81,7 @@
                                 {% set tv = pedido.tipo_visita or '' %}
                                 <option value="Monitoramento" {% if tv == 'Monitoramento' %}selected{% endif %}>Monitoramento</option>
                                 <option value="Aedes Aegypti" {% if tv == 'Aedes Aegypti' %}selected{% endif %}>Aedes Aegypti</option>
-                                <option value="Culex" {% if tv == 'Culex' %}selected{% endif %}>Culex</option>                            
+                                <option value="Culex" {% if tv == 'Culex' %}selected{% endif %}>Culex</option>                                 
                             </select>
                         </div>
 
@@ -91,7 +92,7 @@
                                 <option value="10m" {% if av == '10m' %}selected{% endif %}>10m</option>
                                 <option value="20m" {% if av == '20m' %}selected{% endif %}>20m</option>
                                 <option value="30m" {% if av == '30m' %}selected{% endif %}>30m</option>
-                                <option value="40m" {% if av == '40m' %}selected{% endif %}>40m</option>                            
+                                <option value="40m" {% if av == '40m' %}selected{% endif %}>40m</option>                                 
                             </select>
                         </div>
                         
@@ -215,4 +216,8 @@
         </div>
     </div>
 </div>
+
+{# Não é necessário um bloco {% block scripts %} nesta página, pois não há SweetAlert customizado de submissão. 
+   O loading é tratado automaticamente pelo BASE.HTML. #}
+
 {% endblock %}

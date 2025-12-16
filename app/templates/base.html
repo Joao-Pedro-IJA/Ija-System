@@ -220,73 +220,118 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      {% set flashed = get_flashed_messages(with_categories=true) %}
-      
-      {% if flashed %}
-        {% for category, message in flashed %}
-          
-          // 1. Verifica o estado do Dark Mode no momento da exibição do alerta
-          const isDarkMode = document.body.classList.contains('dark-mode');
-          
-          let icon_type = "{% if category == 'success' %}success{% elif category == 'danger' %}error{% else %}info{% endif %}";
+      // ====================================================================
+      // FUNÇÃO DE CARREGAMENTO (LOADING STATE)
+      // ====================================================================
+      /**
+       * Aplica o estado de carregamento a um botão.
+       * Desabilita o botão e substitui o conteúdo por um spinner.
+       * @param {HTMLElement} button - O botão HTML a ser modificado.
+       */
+      function showLoadingState(button) {
+          if (!button) return;
 
-          Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: icon_type,
-            // CORRIGIDO: Usa |tojson e sem aspas duplas
-            title: {{ message|tojson }}, 
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
+          // 1. Salva o conteúdo original para restaurar depois
+          button.originalText = button.innerHTML; 
+
+          // 2. Desabilita o botão
+          button.disabled = true;
+
+          // 3. Adiciona o spinner e o texto "Aguarde..." (classes do Bootstrap)
+          button.innerHTML = `
+              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              Aguarde...
+          `;
+      }
+      
+      // ====================================================================
+      // MENSAGENS FLASH (SWEETALERT2)
+      // ====================================================================
+      document.addEventListener("DOMContentLoaded", () => {
+        {% set flashed = get_flashed_messages(with_categories=true) %}
+        
+        {% if flashed %}
+          {% for category, message in flashed %}
             
-            // 2. Aplica a classe customizada se o Dark Mode estiver ativo
-            customClass: {
-                // A classe 'swal2-dark-mode' será usada para estilizar o alerta no CSS
-                popup: isDarkMode ? 'swal2-dark-mode' : '' 
+            // 1. Verifica o estado do Dark Mode no momento da exibição do alerta
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            
+            let icon_type = "{% if category == 'success' %}success{% elif category == 'danger' %}error{% else %}info{% endif %}";
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: icon_type,
+              // Usa |tojson e sem aspas duplas
+              title: {{ message|tojson }}, 
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+              
+              // Aplica a classe customizada se o Dark Mode estiver ativo
+              customClass: {
+                  popup: isDarkMode ? 'swal2-dark-mode' : '' 
+              }
+            });
+          {% endfor %}
+        {% endif %}
+
+        // ====================================================================
+        // CONTROLES DE LAYOUT (SIDEBAR E DARK MODE)
+        // ====================================================================
+        const body = document.body;
+        const sidebarToggle = document.getElementById("sidebarToggle");
+
+        // Sidebar (desktop)
+        if (sidebarToggle) {
+          sidebarToggle.addEventListener("click", () => {
+            body.classList.toggle("sidebar-collapsed");
+          });
+          if (window.innerWidth >= 992) {
+            body.classList.remove("sidebar-collapsed");
+          }
+        }
+
+        // Dark mode
+        const toggle = document.getElementById("toggleDarkMode");
+        if (toggle) {
+          if (localStorage.getItem("dark-mode") === "enabled") {
+            body.classList.add("dark-mode");
+            toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
+          }
+
+          toggle.addEventListener("click", () => {
+            body.classList.toggle("dark-mode");
+
+            if (body.classList.contains("dark-mode")) {
+              localStorage.setItem("dark-mode", "enabled");
+              toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
+            } else {
+              localStorage.setItem("dark-mode", "disabled");
+              toggle.innerHTML = '<i class="bi bi-moon-stars"></i>';
             }
           });
-        {% endfor %}
-      {% endif %}
-    });
-</script>
-    {% block scripts %}{% endblock %}
-
-    <script>
-      const body = document.body;
-      const sidebarToggle = document.getElementById("sidebarToggle");
-
-      // Sidebar (desktop)
-      if (sidebarToggle) {
-        sidebarToggle.addEventListener("click", () => {
-          body.classList.toggle("sidebar-collapsed");
-        });
-        if (window.innerWidth >= 992) {
-          body.classList.remove("sidebar-collapsed");
         }
-      }
-
-      // Dark mode
-      const toggle = document.getElementById("toggleDarkMode");
-      if (toggle) {
-        if (localStorage.getItem("dark-mode") === "enabled") {
-          body.classList.add("dark-mode");
-          toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-        }
-
-        toggle.addEventListener("click", () => {
-          body.classList.toggle("dark-mode");
-
-          if (body.classList.contains("dark-mode")) {
-            localStorage.setItem("dark-mode", "enabled");
-            toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-          } else {
-            localStorage.setItem("dark-mode", "disabled");
-            toggle.innerHTML = '<i class="bi bi-moon-stars"></i>';
-          }
+        
+        // ====================================================================
+        // LISTENER UNIVERSAL DE LOADING (Para todos os forms que não são deleção)
+        // ====================================================================
+        // Este bloco aplica o loading state a todos os forms que não são o 'form-deletar'
+        const formsToApplyLoading = document.querySelectorAll('form:not(.form-deletar)');
+        
+        formsToApplyLoading.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const submitButton = this.querySelector('button[type="submit"]');
+                
+                if (submitButton) {
+                    showLoadingState(submitButton);
+                }
+            });
         });
-      }
+
+      }); // FIM DO DOMContentLoaded
     </script>
+    
+    {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -1,4 +1,5 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} 
+{% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-8">
     <div class="card shadow border-0 rounded-4">
@@ -6,6 +7,7 @@
         <h5 class="mb-0"><i class="bi bi-send-fill me-2"></i>Novo Pedido de Voo</h5>
       </div>
       <div class="card-body p-4">
+        {# Este formulário será interceptado pelo listener universal do base.html #}
         <form method="POST">
           
           <h6 class="text-primary fw-bold mb-3 border-bottom pb-2">
@@ -34,16 +36,16 @@
 
           <div class="row mb-3">
             <div class="col-md-4">
-                <label class="fw-bold mb-1">CEP</label>
-                <input
-                  type="text"
-                  id="cep"
-                  name="cep"
-                  maxlength="9"
-                  class="form-control"
-                  placeholder="00000-000"
-                  required
-                />
+              <label class="fw-bold mb-1">CEP</label>
+              <input
+                type="text"
+                id="cep"
+                name="cep"
+                maxlength="9"
+                class="form-control"
+                placeholder="00000-000"
+                required
+              />
             </div>
           </div>
 
@@ -71,13 +73,13 @@
 
           <div class="row mb-3">
             <div class="col-md-6">
-                <label class="fw-bold mb-1">Complemento</label>
-                <input
-                  type="text"
-                  name="complemento"
-                  class="form-control"
-                  placeholder="Ex: Apto 102, Bloco C"
-                />
+              <label class="fw-bold mb-1">Complemento</label>
+              <input
+                type="text"
+                name="complemento"
+                class="form-control"
+                placeholder="Ex: Apto 102, Bloco C"
+              />
             </div>
             <div class="col-md-6">
               <label class="fw-bold mb-1">Bairro</label>
@@ -116,12 +118,12 @@
 
           <div class="row mb-3">
              <div class="col-md-6">
-                <label class="fw-bold mb-1 small">Latitude</label>
-                <input type="text" name="latitude" class="form-control form-control-sm" placeholder="-23.XXXXXX">
+               <label class="fw-bold mb-1 small">Latitude</label>
+               <input type="text" name="latitude" class="form-control form-control-sm" placeholder="-23.XXXXXX">
              </div>
              <div class="col-md-6">
-                <label class="fw-bold mb-1  small">Longitude</label>
-                <input type="text" name="longitude" class="form-control form-control-sm" placeholder="-46.XXXXXX">
+               <label class="fw-bold mb-1  small">Longitude</label>
+               <input type="text" name="longitude" class="form-control form-control-sm" placeholder="-46.XXXXXX">
              </div>
           </div>
 
@@ -131,49 +133,49 @@
 
           <div class="row mb-3">
             <div class="col-md-6">
-                <label class="fw-bold mb-1">Tipo de Visita</label>
-                <select class="form-select" name="tipo_visita" required>
-                    <option value="" selected disabled>Selecione...</option>
-                    <option value="Monitoramento">Monitoramento</option>
-                    <option value="aedes">Aedes</option>
-                    <option value="culex">Culex</option>
-                </select>
+              <label class="fw-bold mb-1">Tipo de Visita</label>
+              <select class="form-select" name="tipo_visita" required>
+                <option value="" selected disabled>Selecione...</option>
+                <option value="Monitoramento">Monitoramento</option>
+                <option value="aedes">Aedes</option>
+                <option value="culex">Culex</option>
+              </select>
             </div>
             <div class="col-md-6">
-                <label class="fw-bold mb-1">Altura do Voo</label>
-                <select class="form-select" name="altura_voo" required>
-                    <option value="" selected disabled>Selecione...</option>
-                    <option value="10m">10 Metros</option>
-                    <option value="20m">20 Metros</option>
-                    <option value="30m">30 Metros</option>
-                    <option value="40m">40 Metros</option>
-                </select>
+              <label class="fw-bold mb-1">Altura do Voo</label>
+              <select class="form-select" name="altura_voo" required>
+                <option value="" selected disabled>Selecione...</option>
+                <option value="10m">10 Metros</option>
+                <option value="20m">20 Metros</option>
+                <option value="30m">30 Metros</option>
+                <option value="40m">40 Metros</option>
+              </select>
             </div>
           </div>
 
           <div class="row mb-3 p-3 rounded mx-1 border">
              <div class="col-md-6 mb-2 mb-md-0 border-end">
-                <label class="fw-bold d-block mb-2">Identificou Criadouro?</label>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="criadouro" id="criadouroSim" value="sim">
-                    <label class="form-check-label" for="criadouroSim">Sim</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="criadouro" id="criadouroNao" value="nao" checked>
-                    <label class="form-check-label" for="criadouroNao">Não</label>
-                </div>
+               <label class="fw-bold d-block mb-2">Identificou Criadouro?</label>
+               <div class="form-check form-check-inline">
+                 <input class="form-check-input" type="radio" name="criadouro" id="criadouroSim" value="sim">
+                 <label class="form-check-label" for="criadouroSim">Sim</label>
+               </div>
+               <div class="form-check form-check-inline">
+                 <input class="form-check-input" type="radio" name="criadouro" id="criadouroNao" value="nao" checked>
+                 <label class="form-check-label" for="criadouroNao">Não</label>
+               </div>
              </div>
 
              <div class="col-md-6">
-                <label class="fw-bold d-block mb-2">Necessário Apoio CET?</label>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="apoio_cet" id="cetSim" value="sim">
-                    <label class="form-check-label" for="cetSim">Sim</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="apoio_cet" id="cetNao" value="nao" checked>
-                    <label class="form-check-label" for="cetNao">Não</label>
-                </div>
+               <label class="fw-bold d-block mb-2">Necessário Apoio CET?</label>
+               <div class="form-check form-check-inline">
+                 <input class="form-check-input" type="radio" name="apoio_cet" id="cetSim" value="sim">
+                 <label class="form-check-label" for="cetSim">Sim</label>
+               </div>
+               <div class="form-check form-check-inline">
+                 <input class="form-check-input" type="radio" name="apoio_cet" id="cetNao" value="nao" checked>
+                 <label class="form-check-label" for="cetNao">Não</label>
+               </div>
              </div>
           </div>
 
@@ -213,34 +215,74 @@
   </div>
 </div>
 
+{% block scripts %}{% endblock%}
 <script>
   document.getElementById("cep").addEventListener("keyup", function () {
-    let cep = this.value.replace(/\D/g, "");
+    let cepInput = this;
+    let cep = cepInput.value.replace(/\D/g, "");
 
     if (cep.length === 8) {
-      // Feedback visual carregando
-      document.getElementById("endereco").placeholder = "Buscando...";
-      
-      fetch(`https://viacep.com.br/ws/${cep}/json/`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (!data.erro) {
-            document.getElementById("endereco").value = data.logradouro || "";
-            document.getElementById("bairro").value = data.bairro || "";
-            document.getElementById("cidade").value = data.localidade || "";
-            document.getElementById("uf").value = data.uf || "";
-            document.getElementById("endereco").placeholder = "";
-          } else {
-            alert("CEP não encontrado.");
-            document.getElementById("endereco").placeholder = "";
-          }
-        })
-        .catch(() => {
-            document.getElementById("endereco").placeholder = "";
-        });
+        
+        // 1. Aplica Loading no Input e Desabilita
+        cepInput.classList.add('loading-spinner');
+        cepInput.disabled = true;
+
+        // Limpa campos que serão preenchidos
+        document.getElementById("endereco").value = "";
+        document.getElementById("bairro").value = "";
+        document.getElementById("cidade").value = "";
+        document.getElementById("uf").value = "";
+        
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then((response) => response.json())
+            .then((data) => {
+                // 2. Remove Loading e Reabilita
+                cepInput.classList.remove('loading-spinner');
+                cepInput.disabled = false;
+                
+                // 3. Verifica e Preenche
+                if (!data.erro) {
+                    document.getElementById("endereco").value = data.logradouro || "";
+                    document.getElementById("bairro").value = data.bairro || "";
+                    document.getElementById("cidade").value = data.localidade || "";
+                    document.getElementById("uf").value = data.uf || "";
+                } else {
+                    // Feedback com SweetAlert
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'warning',
+                        title: 'CEP não encontrado.',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: document.body.classList.contains('dark-mode') ? 'swal2-dark-mode' : ''
+                        }
+                    });
+                    // Limpa os campos se der erro
+                    document.getElementById("endereco").value = "";
+                    document.getElementById("bairro").value = "";
+                    document.getElementById("cidade").value = "";
+                    document.getElementById("uf").value = "";
+                }
+            })
+            .catch(() => {
+                // 4. Tratamento de Erro de Conexão
+                cepInput.classList.remove('loading-spinner');
+                cepInput.disabled = false;
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Erro ao consultar o CEP.',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    customClass: {
+                        popup: document.body.classList.contains('dark-mode') ? 'swal2-dark-mode' : ''
+                    }
+                });
+            });
     }
   });
-
 </script>
 {% endblock %}
-            

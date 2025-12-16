@@ -7,7 +7,6 @@
     {# 1. CONTROLE DE PERMISSÃO: BOTÕES EXPORTAR #}
     <div class="d-flex gap-2">
         {% if is_editable %}
-        {# MANTIDO: BOTÃO EXPORTAR EXCEL (Permitido para ADMIN e OPERARIO) #}
         <a class="btn btn-success" href="{{ url_for('main.exportar_excel',
             status=request.args.get('status'),
             unidade=request.args.get('unidade'),
@@ -16,12 +15,11 @@
             <i class="bi bi-file-earmark-excel-fill"></i> Exportar Excel
         </a>
         {% endif %}
-
-        {# REMOVIDO: O bloco de exportar PDF que causava o erro 'now() is undefined' #}
     </div>
 </div>
 
 {# --- Formulário de Filtros --- #}
+{# JÁ SERÁ INTERCEPTADO PELO LISTENER UNIVERSAL DO BASE.HTML #}
 <form method="GET" class="card p-3 mb-4 shadow-sm">
     <div class="row g-2">
         <div class="col-md-3">
@@ -43,7 +41,7 @@
             <input type="text" name="regiao" class="text-add form-control form-control-sm" placeholder="Leste, Oeste..." value="{{ request.args.get('regiao', '') }}">
         </div>
         <div class="col-md-3 d-flex align-items-end">
-            <button class="btn btn-success btn-sm w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+            <button class="btn btn-success btn-sm w-100" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
         </div>
     </div>
 </form>
@@ -62,7 +60,6 @@
             </thead>
             <tbody>
                 {% for p in pedidos %}
-                {# **LINHA CORRIGIDA: REMOVIDA A TAG <form> EXTERNA** #}
                 <tr>
                     <td class="align-top pt-3">
                         <strong class="text-primary fs-6">{{ p.autor.nome_uvis }}</strong>
@@ -89,7 +86,6 @@
                             <a href="{{ url_for('main.admin_editar_completo', id=p.id) }}" class="btn btn-sm btn-success">
                                 <i class="bi bi-pencil-square"></i> Editar
                             </a>
-                            {# ESTE FORMULÁRIO ESTÁ CORRETO E AGORA NÃO ESTÁ ANINHADO #}
                             <form class="form-deletar" action="{{ url_for('main.deletar_registro', id=p.id) }}" method="POST">
                                 <button type="submit" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i> Deletar
@@ -109,7 +105,6 @@
                                 <small class="text-muted d-block">GPS:</small>
                                 <small class="fw-bold font-monospace">{{ p.latitude }}, {{ p.longitude }}</small>
                             </div>
-                            {# Atenção: Mapeamento corrigido. Use http://maps.google.com/maps?q=... #}
                             <a href="http://maps.google.com/maps?q={{ p.latitude }},{{ p.longitude }}" target="_blank" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-map-fill"></i> Mapa
                             </a>
@@ -159,7 +154,7 @@
 
                     <td class="align-top pt-3 bg-opacity-50">
                         
-                        {# **LINHA CORRIGIDA: O FORMULÁRIO DE ATUALIZAÇÃO COMEÇA AQUI** #}
+                        {# FORMULÁRIO DE ATUALIZAÇÃO (Será pego pelo listener universal do BASE.HTML) #}
                         {% if is_editable %}
                         <form action="{{ url_for('main.atualizar', id=p.id) }}" method="POST">
                             <div class="row g-1 mb-2">
@@ -187,12 +182,12 @@
                                 <label class="small fw-bold text-muted">Justificativa (se negar)</label>
                                 <input name="justificativa" class="form-control form-control-sm mb-2" value="{{ p.justificativa or '' }}">
 
-                                <button class="btn btn-primary btn-sm w-100 fw-bold">
+                                {# ✅ ADICIONADO type="submit" #}
+                                <button class="btn btn-primary btn-sm w-100 fw-bold" type="submit">
                                     <i class="bi bi-check-lg"></i> Salvar Decisão
                                 </button>
                             </div>
                         </form>
-                        {# **LINHA CORRIGIDA: O FORMULÁRIO DE ATUALIZAÇÃO TERMINA AQUI** #}
                         
                         {# CONTEÚDO SOMENTE LEITURA PARA 'VISUALIZAR' #}
                         {% else %}
@@ -221,7 +216,6 @@
                         {% endif %}
                     </td>
                 </tr>
-                {# **LINHA CORRIGIDA: REMOVIDA A TAG </form> EXTERNA FINAL** #}
                 {% else %}
                 <tr>
                     <td colspan="3" class="text-center py-5 text-muted">
@@ -253,33 +247,38 @@
 
 {% block scripts %}
 <script>
+// ESTE CÓDIGO SÓ É EXECUTADO NESTA PÁGINA E TEM PRIORIDADE SOBRE O LISTENER UNIVERSAL.
 document.querySelectorAll('.form-deletar').forEach(form => {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // 1. CHECAGEM DO DARK MODE
+        // Checagem do Dark Mode (do base.html)
         const isDarkMode = document.body.classList.contains('dark-mode');
+        // Pega o botão de submit para aplicar o loading depois
+        const submitButton = form.querySelector('button[type="submit"]'); 
 
         Swal.fire({
             title: 'Tem certeza?',
             text: "Você está prestes a DELETAR PERMANENTEMENTE este registro.",
             icon: 'warning',
             
-            // 2. APLICAÇÃO DA CLASSE DARK MODE NO MODAL (POPUP)
+            // Aplicação da classe Dark Mode no modal
             customClass: {
-                // Aplica a classe CSS 'swal2-dark-mode' se o dark mode estiver ativo
                 popup: isDarkMode ? 'swal2-dark-mode' : '',
-                // A classe 'swal-sm' que você já tinha pode ser mantida
-                // Se a sua classe 'swal-sm' não for o suficiente para o Dark Mode, remova-a ou ajuste-a.
             },
             
             showCancelButton: true,
-            confirmButtonColor: '#d33', // Vermelho
-            cancelButtonColor: '#6c757d', // Cinza
+            confirmButtonColor: '#d33', 
+            cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sim, deletar!',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
+                // ✅ ATIVAÇÃO DO LOADING: Chama a função antes de enviar
+                if (typeof showLoadingState === 'function') {
+                    showLoadingState(submitButton); 
+                }
+                
                 form.submit();
             }
         });
