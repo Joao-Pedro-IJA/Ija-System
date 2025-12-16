@@ -479,32 +479,6 @@
     }
 
     // =========================
-    // Status (doughnut)
-    // =========================
-    const dadosStatus = readJson("dados-status-json").map(([s, c]) => [cleanLabel(s), c]);
-    if (document.getElementById("chartStatus")) {
-        new Chart(document.getElementById("chartStatus"), {
-            type: "doughnut",
-            data: {
-                labels: dadosStatus.map(x => x[0]),
-                datasets: [{
-                    data: dadosStatus.map(x => x[1]),
-                    backgroundColor: ["#198754", "#dc3545", "#ffc107", "#0dcaf0"],
-                    borderWidth: 0,
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                cutout: "70%",
-                plugins: {
-                    legend: { position: "bottom" },
-                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}` } }
-                }
-            }
-        });
-    }
-
-    // =========================
     // Região (bar horizontal)
     // =========================
     const dadosRegiao = readJson("dados-regiao-json").map(([r, c]) => [cleanLabel(r), c]);
@@ -636,6 +610,68 @@
     }
 </script>
 
+<script>
+    // =========================
+    // Mapa fixo de cores por status
+    // =========================
+    const statusColorsMap = {
+        "APROVADO": "#198754",     // verde
+        "APROVADA": "#198754",
+        "APROVADOS": "#198754",
+
+        "RECUSADO": "#dc3545",     // vermelho
+        "RECUSADA": "#dc3545",
+        "RECUSADOS": "#dc3545",
+        "NEGADO": "#dc3545",
+
+        "EM ANÁLISE": "#ffc107",   // amarelo
+        "EM ANALISE": "#ffc107",
+
+        "PENDENTE": "#0d6efd",     // azul
+        "PENDENTES": "#0d6efd"
+    };
+
+    // =========================
+    // Status (doughnut)
+    // =========================
+    const dadosStatus = readJson("dados-status-json")
+        .map(([status, count]) => [
+            (status || "Não informado").toUpperCase(),
+            count
+        ]);
+
+    if (document.getElementById("chartStatus")) {
+        new Chart(document.getElementById("chartStatus"), {
+            type: "doughnut",
+            data: {
+                labels: dadosStatus.map(item => item[0]),
+                datasets: [{
+                    data: dadosStatus.map(item => item[1]),
+                    backgroundColor: dadosStatus.map(
+                        item => statusColorsMap[item[0]] || "#adb5bd"
+                    ),
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                cutout: "70%",
+                plugins: {
+                    legend: {
+                        position: "bottom"
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.label}: ${ctx.parsed}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+
 {% endblock %}
 
 {% block scripts %}
@@ -671,4 +707,5 @@
         });
     });
 </script>
+
 {% endblock %}
