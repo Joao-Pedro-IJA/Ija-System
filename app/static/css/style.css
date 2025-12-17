@@ -21,6 +21,7 @@
   --color-success: #2f855a;
   --color-warning: #c05621;
   --color-danger: #e53e3e;
+  --color-recomended: #F7630C;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -210,6 +211,7 @@ body.sidebar-collapsed .app-content { margin-left: var(--sidebar-width-collapsed
 .bg-secondary { background: var(--color-text-muted) !important; }
 .bg-success { background: var(--color-success) !important; }
 .bg-warning { background: #d69e2e !important; color: #fff !important; }
+.bg-recomended { background: var(--color-recomended) !important; color: #fff !important; }
 .bg-danger { background: var(--color-danger); color: #fff !important; }
 .bg-light { background: var() !important; color: var(--color-text-main) !important; }
 .alert { padding: 0.75rem 1rem; border-radius: 8px; }

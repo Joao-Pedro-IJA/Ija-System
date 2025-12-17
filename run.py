@@ -108,21 +108,6 @@ def verificar_banco():
 
             db.session.commit()
             print(">>> Banco de dados verificado com sucesso!")
-            
-            
-            # --- CUIDADO: Cria pedido de teste para o TESTE (se necessário)
-            if teste and not Solicitacao.query.filter_by(usuario_id=teste.id).first():
-                print("--- Criando pedido de teste para o novo usuário 'teste'... ---")
-                pedido = Solicitacao(
-                    data_agendamento="2026-01-01",
-                    hora_agendamento="10:00",
-                    endereco="Rua Teste Funcional, 999",
-                    foco="Imóvel Abandonado",
-                    usuario_id=teste.id,
-                    status="EM ANÁLISE"
-                )
-                db.session.add(pedido)
-                db.session.commit()
 
 
     except Exception as e:

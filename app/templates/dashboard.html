@@ -19,7 +19,7 @@
                 <option value="PENDENTE" {{ 'selected' if request.args.get('status')=='PENDENTE' else '' }}>⚪️ Pendentes</option>
                 <option value="EM ANÁLISE" {{ 'selected' if request.args.get('status')=='EM ANÁLISE' else '' }}>🟡 Em Análise</option>
                 <option value="APROVADO" {{ 'selected' if request.args.get('status')=='APROVADO' else '' }}>🟢 Aprovados</option>
-                <option value="APROVADO COM RECOMENDAÇÕES" {{ 'selected' if request.args.get('status')=='APROVADO COM RECOMENDAÇÕES' else '' }}>🟠 Aprovado com Recomendações</option >
+                <option value="APROVADO COM RECOMENDAÇÕES" {{ 'selected' if request.args.get('status')=='APROVADO COM RECOMENDAÇÕES' else ''}}>🟠 Aprovado com Recomendações</option>
                 <option value="NEGADO" {{ 'selected' if request.args.get('status')=='NEGADO' else '' }}>🔴 Negados</option>
             </select>
         </div>
@@ -84,12 +84,15 @@
 
                         <td class="text-center">
                             {% if p.status == 'PENDENTE' %}
-                                <span class="badge bg-secondary text-white"><i class="bi bi-hourglass me-1"></i> Pendente</span>
+                                <span class="badge bg-secondary text-white">Pendente</span>
                             {% elif p.status == 'APROVADO' %}
-                                <span class="badge bg-success rounded-pill"><i class="bi bi-check-lg me-1"></i> Aprovado</span>
+                                <span class="badge bg-success rounded-pill">Aprovado</span>
                                 <div class="small text-success mt-1 fw-bold font-monospace">{{ p.protocolo }}</div>
+                            {% elif p.status == 'APROVADO COM RECOMENDAÇÕES' %}
+                                <span class="badge bg-recomended text-dark rounded-pill"></i> Aprovado com Recomendações</span>
+                                <div class="small text-warning mt-1 fw-bold font-monospace">{{ p.protocolo }}</div>
                             {% elif p.status == 'NEGADO' %}
-                                <span class="badge bg-danger rounded-pill"><i class="bi bi-x-circle me-1"></i> Negado</span>
+                                <span class="badge bg-danger rounded-pill"></i> Negado</span>
                             {% else %}
                                 <span class="badge bg-warning text-dark rounded-pill">Em Análise</span>
                             {% endif %}

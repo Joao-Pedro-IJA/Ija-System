@@ -583,6 +583,7 @@ def relatorios():
         'relatorios.html',
         total_solicitacoes=total_solicitacoes,
         total_aprovadas=total_aprovadas,
+        total_aprovadas_com_recomendacoes=total_aprovadas_com_recomendacoes,
         total_recusadas=total_recusadas,
         total_analise=total_analise,
         total_pendentes=total_pendentes,
@@ -830,6 +831,7 @@ def exportar_relatorio_pdf():
         ['Métrica', 'Quantidade'],
         ['Total de Solicitações', str(total_solicitacoes)],
         ['Aprovadas', str(total_aprovadas)],
+        ['Aprovadas com Recomendações', str(total_aprovadas_com_recomendacoes)],
         ['Recusadas', str(total_recusadas)],
         ['Em Análise', str(total_analise)],
         ['Pendentes', str(total_pendentes)]
