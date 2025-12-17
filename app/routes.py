@@ -188,7 +188,7 @@ def exportar_excel():
         "Endereço Completo",       # <-- CAMPO ÚNICO
         "Latitude", "Longitude",
         "Foco", "Tipo Visita", "Altura",
-        "Criadouro?", "Apoio CET?",
+        "Apoio CET?",
         "Observação",
         "Status", "Protocolo", "Justificativa"
     ]
@@ -227,7 +227,6 @@ def exportar_excel():
             endereco_completo += f" - {p.complemento}"
 
         # Booleans
-        criadouro_txt = "SIM" if getattr(p, 'criadouro', None) else "NÃO"
         cet_txt = "SIM" if getattr(p, 'apoio_cet', None) else "NÃO"
 
         # Data formatada
@@ -258,7 +257,6 @@ def exportar_excel():
             p.foco,
             getattr(p, 'tipo_visita', ''),
             getattr(p, 'altura_voo', ''),
-            criadouro_txt,
             cet_txt,
             getattr(p, 'observacao', ''),
             p.status,
@@ -354,7 +352,6 @@ def novo():
             else:
                 hora_obj = None
 
-            criadouro_bool = request.form.get('criadouro') == 'sim'
             apoio_cet_bool = request.form.get('apoio_cet') == 'sim'
 
 
@@ -374,7 +371,6 @@ def novo():
 
                 tipo_visita=request.form.get('tipo_visita'),
                 altura_voo=request.form.get('altura_voo'),
-                criadouro=criadouro_bool,
                 apoio_cet=apoio_cet_bool,
                 observacao=request.form.get('observacao'),
 
@@ -1253,7 +1249,6 @@ def admin_editar_completo(id):
             pedido.foco = request.form.get('foco')
             pedido.tipo_visita = request.form.get('tipo_visita')
             pedido.altura_voo = request.form.get('altura_voo')
-            pedido.criadouro = request.form.get('criadouro') == 'sim'
             pedido.apoio_cet = request.form.get('apoio_cet') == 'sim'
             pedido.observacao = request.form.get('observacao')
 
@@ -1282,7 +1277,7 @@ def admin_editar_completo(id):
 
                 criar_notificacao(
                     usuario_id=pedido.usuario_id,
-                    titulo="📅 Agendamento atualizado",
+                    titulo="Agendamento atualizado",
                     mensagem=f"Sua solicitação foi agendada para {data_fmt} às {hora_fmt}.",
                     link=url_for("main.agenda")
                 )
@@ -1454,7 +1449,7 @@ def garantir_notificacoes_do_dia(usuario_id):
 
         criar_notificacao(
             usuario_id=usuario_id,
-            titulo="📅 Agendamento para hoje",
+            titulo="Agendamento para hoje",
             mensagem=f"Você tem um agendamento hoje às {hora_fmt} (Foco: {s.foco}).",
             link=link
         )

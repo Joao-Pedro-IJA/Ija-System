@@ -135,16 +135,10 @@
                         </div>
 
                         <div class="mb-3">
-                            {% if p.criadouro %}
-                            <span class="badge bg-danger">Criadouro: SIM</span>
-                            {% else %}
-                            <span class="badge bg-light text-secondary border">Criadouro: NÃO</span>
-                            {% endif %}
-
                             {% if p.apoio_cet %}
                             <span class="badge bg-warning text-dark">Apoio CET: SIM</span>
                             {% else %}
-                            <span class="badge bg-light text-secondary border">Apoio CET: NÃO</span>
+                            <span class="badge bg-danger text-dark">Apoio CET: NÃO</span>
                             {% endif %}
                         </div>
 
