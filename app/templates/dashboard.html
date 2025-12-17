@@ -22,7 +22,7 @@
                 <option value="NEGADO" {{ 'selected' if request.args.get('status')=='NEGADO' else '' }}>🔴 Negados</option>
             </select>
         </div>
-        
+
         <div class="col-md-3">
             <button type="submit" class="btn btn-success btn-sm w-100">
                 <i class="bi bi-funnel me-2"></i> Filtrar
@@ -139,25 +139,24 @@
 </nav>
 {% endif %}
 
-
 {% for p in solicitacoes %}
 <div class="modal fade" id="modalDetalhes{{ p.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content"> <!-- Adiciona o fundo escuro e texto claro -->
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Detalhes do Pedido #{{ p.id }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                
+
                 <h6 class="text-primary border-bottom pb-2 fw-bold"><i class="bi bi-geo-alt-fill"></i> Localização</h6>
                 <p class="rua mb-1 small">
                     <strong>Endereço:</strong> {{ p.logradouro }}, {{ p.numero }} {{ '('+p.complemento+')' if p.complemento else '' }}
                 </p>
                 <p class="mb-2 small"><strong>Bairro:</strong> {{ p.bairro }} - {{ p.cidade }}/{{ p.uf }}</p>
-                
+
                 {% if p.latitude and p.longitude %}
-                <div class="d-flex justify-content-between align-items-center p-2 rounded border mb-3"> <!-- Fundo escuro para essa seção -->
+                <div class="d-flex justify-content-between align-items-center p-2 rounded border mb-3">
                     <div>
                         <small class="text-muted d-block">Coordenadas:</small>
                         <strong class="font-monospace small">{{ p.latitude }}, {{ p.longitude }}</strong>
@@ -219,5 +218,256 @@
 </div>
 {% endfor %}
 
+<!-- =========================
+     Chatbot UVIS (FAQ inteligente)
+========================= -->
+<style>
+  .uvis-chat-btn {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1080;
+    border-radius: 999px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  }
+  .uvis-chat-bubble {
+    max-width: 85%;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: .92rem;
+    line-height: 1.35rem;
+    white-space: pre-wrap;
+  }
+  .uvis-chat-bubble.user { margin-left: auto; }
+  .uvis-chat-bubble.bot  { margin-right: auto; }
+  .uvis-chat-messages {
+    height: calc(100vh - 240px);
+    overflow: auto;
+    padding: 12px;
+    background: rgba(0,0,0,.02);
+    border-radius: 12px;
+  }
+/* =========================
+   Chatbot UVIS - Dark Mode
+   (body.dark-mode)
+========================= */
 
+body.dark-mode #uvisChatbot.offcanvas {
+  background: #152233;
+  color: var(--color-text-main);
+  border-left: 1px solid #233549;
+}
+
+body.dark-mode #uvisChatbot .offcanvas-header {
+  background: #152233;
+  border-bottom: 1px solid #233549;
+}
+
+body.dark-mode #uvisChatbot .offcanvas-title {
+  color: #ffffff;
+}
+
+body.dark-mode #uvisChatbot .btn-close {
+  filter: invert(1); /* igual seu modal no dark mode */
+}
+
+body.dark-mode #uvisChatbot .offcanvas-body {
+  color: var(--color-text-main);
+}
+
+body.dark-mode #uvisChatbot .uvis-chat-messages {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* bolhas */
+body.dark-mode #uvisChatbot .uvis-chat-bubble.bot {
+  background: #1c2b3f !important;
+  border: 1px solid #233549 !important;
+  color: var(--color-text-main) !important;
+}
+
+body.dark-mode #uvisChatbot .uvis-chat-bubble.user {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
+/* input */
+body.dark-mode #uvisChatbot .form-control {
+  background: #1c2b3f !important;
+  border: 1px solid #334155 !important;
+  color: var(--color-text-main) !important;
+}
+
+body.dark-mode #uvisChatbot .form-control::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+/* botões rápidos */
+body.dark-mode #uvisChatbot .btn-outline-secondary {
+  color: var(--color-text-muted) !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode #uvisChatbot .btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--color-text-main) !important;
+}
+
+/* texto de ajuda no rodapé (pra não ficar claro demais) */
+body.dark-mode #uvisChatbot small.text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+</style>
+
+<button class="btn btn-primary uvis-chat-btn" type="button"
+        data-bs-toggle="offcanvas" data-bs-target="#uvisChatbot" aria-controls="uvisChatbot"
+        title="Ajuda UVIS">
+  <i class="bi bi-chat-dots-fill"></i>
+</button>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="uvisChatbot" aria-labelledby="uvisChatbotLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="uvisChatbotLabel">
+      <i class="bi bi-robot me-2"></i> Ajuda UVIS
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body d-flex flex-column gap-2">
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-sm btn-outline-secondary" data-q="O que significa Em Análise?">Status</button>
+      <button class="btn btn-sm btn-outline-secondary" data-q="Quais campos são obrigatórios na Nova Solicitação?">Campos</button>
+      <button class="btn btn-sm btn-outline-secondary" data-q="O que fazer se o CEP não encontrar?">CEP</button>
+      <button class="btn btn-sm btn-outline-secondary" data-q="Qual o checklist antes de enviar?">Checklist</button>
+      <button class="btn btn-sm btn-outline-secondary" data-q="Como funciona Notificações e Agenda?">Notificações</button>
+    </div>
+
+    <div id="uvisChatMessages" class="uvis-chat-messages"></div>
+
+    <div class="input-group mt-auto">
+      <input id="uvisChatInput" type="text" class="form-control" placeholder="Digite sua dúvida...">
+      <button id="uvisChatSend" class="btn btn-success">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+
+    <small class="text-muted">
+      Baseado no manual UVIS. Se não achar a resposta, tente reformular com palavras como “status”, “CEP”, “nova solicitação”, “checklist”.
+    </small>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const msgs = document.getElementById("uvisChatMessages");
+  const input = document.getElementById("uvisChatInput");
+  const sendBtn = document.getElementById("uvisChatSend");
+  const offcanvasEl = document.getElementById("uvisChatbot");
+
+  if (!msgs || !input || !sendBtn || !offcanvasEl) return;
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function renderBotHtml(text) {
+    // Respostas vêm do backend (texto fixo), mas vamos escapar e só permitir **negrito** + quebras de linha.
+    let html = escapeHtml(text);
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/\n/g, "<br>");
+    return html;
+  }
+
+  function addMsg(text, who) {
+    const row = document.createElement("div");
+    row.className = "d-flex mb-2 " + (who === "user" ? "justify-content-end" : "justify-content-start");
+
+    const bubble = document.createElement("div");
+    bubble.className = "uvis-chat-bubble " + who + " " + (who === "user" ? "bg-primary text-white" : "bg-white border");
+
+    if (who === "bot") {
+      bubble.innerHTML = renderBotHtml(text);
+    } else {
+      bubble.textContent = text;
+    }
+
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function addTyping() {
+    const row = document.createElement("div");
+    row.className = "d-flex mb-2 justify-content-start";
+    row.id = "uvisTyping";
+    const bubble = document.createElement("div");
+    bubble.className = "uvis-chat-bubble bot bg-white border";
+    bubble.textContent = "Digitando...";
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById("uvisTyping");
+    if (el) el.remove();
+  }
+
+  async function ask(text) {
+    const q = (text || "").trim();
+    if (!q) return;
+
+    addMsg(q, "user");
+    input.value = "";
+    addTyping();
+
+    try {
+      const res = await fetch("/api/uvis/chatbot", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: q})
+      });
+
+      const data = await res.json().catch(() => ({}));
+      removeTyping();
+
+      if (!res.ok && res.status === 401) {
+        addMsg("Sessão expirada. Faça login novamente.", "bot");
+        return;
+      }
+
+      addMsg(data.answer || "Não consegui responder agora. Tente novamente.", "bot");
+    } catch (e) {
+      removeTyping();
+      addMsg("Erro ao conectar com o chatbot. Avise o suporte.", "bot");
+    }
+  }
+
+  // mensagem inicial
+  addMsg("Olá! Me diga sua dúvida sobre o sistema (status, nova solicitação, CEP, checklist, notificações...).", "bot");
+
+  sendBtn.addEventListener("click", () => ask(input.value));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") ask(input.value);
+  });
+
+  document.querySelectorAll("[data-q]").forEach(btn => {
+    btn.addEventListener("click", () => ask(btn.getAttribute("data-q")));
+  });
+
+  offcanvasEl.addEventListener("shown.bs.offcanvas", () => {
+    setTimeout(() => input.focus(), 100);
+  });
+})();
+</script>
 {% endblock %}

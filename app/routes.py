@@ -1546,3 +1546,155 @@ def limpar_notificacoes():
 
     db.session.commit()
     return redirect(url_for("main.notificacoes"))
+
+# ==========================
+# CHATBOT UVIS (FAQ inteligente)
+# ==========================
+import re
+import unicodedata
+from flask import jsonify, request, session
+
+def _norm(text: str) -> str:
+    if not text:
+        return ""
+    text = text.strip().lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+UVIS_FAQ = [
+    {
+        "title": "Status da solicitação",
+        "keywords": ["status", "pendente", "em analise", "aprovado", "negado", "protocolo"],
+        "answer": (
+            "📌 **Significado dos status**:\n"
+            "- **Pendente**: solicitação registrada e aguardando início do processo.\n"
+            "- **Em Análise**: pedido em validação pela equipe responsável.\n"
+            "- **Aprovado**: pedido autorizado (pode aparecer o número de protocolo).\n"
+            "- **Negado**: pedido não aprovado (o motivo aparece nos detalhes).\n\n"
+            "💡 Dica: clique em **Detalhes** para ver justificativa/protocolo."
+        ),
+    },
+    {
+        "title": "O que tem na tela 'Minhas Solicitações' (Dashboard)",
+        "keywords": ["dashboard", "minhas solicitacoes", "tela inicial", "filtro", "detalhes", "nova solicitacao"],
+        "answer": (
+            "Na tela **Minhas Solicitações** você encontra:\n"
+            "- Botão **Nova Solicitação** (abre o formulário)\n"
+            "- **Filtro por status** (Pendente, Em Análise, Aprovado, Negado)\n"
+            "- **Tabela** com data/hora, localização e foco\n"
+            "- Botão **Detalhes** (abre um modal com informações completas)\n"
+        ),
+    },
+    {
+        "title": "Campos obrigatórios ao criar uma solicitação",
+        "keywords": ["novo", "nova solicitacao", "cadastro", "campos", "obrigatorio", "cep", "numero", "tipo de visita", "altura", "foco"],
+        "answer": (
+            "✅ No cadastro de uma nova solicitação, atenção aos campos:\n"
+            "- **Data** e **Hora** (obrigatórios)\n"
+            "- **CEP** (8 dígitos) para preencher endereço automático\n"
+            "- **Logradouro** (confirmar) e **Número** (preencher manualmente)\n"
+            "- **Tipo de visita** (Monitoramento / Aedes / Culex)\n"
+            "- **Altura do voo** (10m, 20m, 30m, 40m)\n"
+            "- **Foco da ação** (ex.: Imóvel Abandonado, Piscina/Caixa d’água, Terreno Baldio, Ponto Estratégico)\n"
+        ),
+    },
+    {
+        "title": "CEP / endereço não encontrado e boas práticas",
+        "keywords": ["cep", "endereco", "logradouro", "bairro", "cidade", "uf", "nao encontrado", "boas praticas"],
+        "answer": (
+            "Se o **CEP não for encontrado**, preencha o endereço manualmente e revise.\n"
+            "Boas práticas:\n"
+            "- confira se o **CEP** corresponde ao local\n"
+            "- verifique logradouro/bairro/cidade/UF\n"
+            "- preencha o **número** (sem ele pode dificultar a localização)\n"
+        ),
+    },
+    {
+        "title": "Latitude/Longitude e mapa",
+        "keywords": ["latitude", "longitude", "coordenadas", "gps", "mapa"],
+        "answer": (
+            "📍 **Latitude/Longitude** é opcional (recomendado) e melhora a precisão.\n"
+            "Se houver coordenadas, o sistema pode oferecer acesso rápido ao mapa."
+        ),
+    },
+    {
+        "title": "Notificações e Agenda",
+        "keywords": ["notificacao", "notificacoes", "agenda", "calendario", "lembrete"],
+        "answer": (
+            "🔔 Em **Notificações**, você vê alertas da unidade (lembretes do dia/atualizações).\n"
+            "Ao clicar, pode ser direcionado para a **Agenda**, que mostra os agendamentos por mês/semana/lista."
+        ),
+    },
+    {
+        "title": "Checklist antes de enviar",
+        "keywords": ["checklist", "antes de enviar", "enviar pedido", "validar"],
+        "answer": (
+            "🧾 **Checklist rápido antes de enviar**:\n"
+            "☐ Data e hora corretas\n"
+            "☐ CEP válido e endereço conferido\n"
+            "☐ Número preenchido\n"
+            "☐ Tipo de visita e altura do voo selecionados\n"
+            "☐ Foco da ação selecionado\n"
+            "☐ Observações (se necessário) com informações objetivas\n"
+        ),
+    },
+    {
+        "title": "Suporte",
+        "keywords": ["suporte", "erro", "acesso", "login", "senha"],
+        "answer": (
+            "Se a dúvida for de **erro de acesso**, inconsistência de **CEP/endereço**, ou algo fora do fluxo: "
+            "entre em contato com o time de desenvolvimento/suporte da IJA."
+        ),
+    },
+]
+
+@bp.route("/api/uvis/chatbot", methods=["POST"])
+def uvis_chatbot():
+    # protege: só usuário logado
+    if "user_id" not in session:
+        return jsonify({"answer": "Sessão expirada. Faça login novamente."}), 401
+
+    payload = request.get_json(silent=True) or {}
+    msg = (payload.get("message") or "").strip()
+
+    if not msg:
+        return jsonify({"answer": "Escreva sua dúvida (ex.: “o que significa Em Análise?”)."}), 400
+
+    nmsg = _norm(msg)
+
+    best = None
+    best_score = 0
+
+    for item in UVIS_FAQ:
+        score = 0
+        for kw in item["keywords"]:
+            if kw in nmsg:
+                score += 1
+        if score > best_score:
+            best_score = score
+            best = item
+
+    if not best or best_score == 0:
+        sugestoes = [
+            "• “O que significa Pendente/Em Análise/Aprovado/Negado?”",
+            "• “Quais campos são obrigatórios na Nova Solicitação?”",
+            "• “O que fazer se o CEP não encontrar?”",
+            "• “Qual o checklist antes de enviar?”",
+            "• “Como funciona Notificações e Agenda?”",
+        ]
+        return jsonify({
+            "answer": (
+                "Não encontrei essa dúvida diretamente no manual.\n\n"
+                "Tenta uma dessas perguntas:\n" + "\n".join(sugestoes)
+            ),
+            "matched": None,
+            "confidence": 0,
+        }), 200
+
+    return jsonify({
+        "answer": best["answer"],
+        "matched": best["title"],
+        "confidence": best_score,
+    }), 200
