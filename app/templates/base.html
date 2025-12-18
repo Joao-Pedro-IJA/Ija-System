@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html
+  lang="pt-br"
+  class="{% if tema_escolhido == 'dark' %}dark-mode{% endif %}"
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +10,7 @@
     <link
       rel="icon"
       type="image/png"
-      href="{{ url_for('static', filename='img/logo_IJA_System.png') }}"
+      href="{{ url_for('static', filename='img/logo_IJA_System_' + (tema_escolhido if tema_escolhido else 'light') + '.png') }}"
     />
 
     <link
@@ -26,6 +29,17 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <script>
+      (function () {
+        const theme = document.cookie.match(/theme=([^;]+)/);
+        if (theme && theme[1] === "dark") {
+          document.documentElement.classList.add("dark-mode");
+          document.documentElement.style.backgroundColor = "#101927";
+        }
+      })();
+    </script>
+
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
@@ -35,7 +49,7 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow-sm">
       <div class="container-fluid">
-        {% if current_user.is_authenticated %}
+        {% if current_user and current_user.is_authenticated %}
         <button
           class="btn btn-outline-primary me-3 d-none d-lg-block"
           type="button"
@@ -186,134 +200,135 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-            // ====================================================================
-            // FUNÇÕES GLOBAIS DE CARREGAMENTO (LOADING STATE)
-            // ====================================================================
-            function hideLoadingState(button) {
-              if (!button || !button.originalText) return;
-              button.disabled = false;
-              button.innerHTML = button.originalText;
-              delete button.originalText;
-            }
+      // ====================================================================
+      // FUNÇÕES DE COOKIES (UX MELHORADA)
+      // ====================================================================
+      function setThemeCookie(themeName) {
+        const date = new Date();
+        date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 ano
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = `theme=${themeName}; ${expires}; path=/; SameSite=Lax`;
+      }
 
-            function showLoadingState(button) {
-              if (!button) return;
-              button.originalText = button.innerHTML;
-              button.disabled = true;
-              button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Aguarde...`;
-            }
+      function getThemeFromCookie() {
+        const theme = document.cookie.match(/theme=([^;]+)/);
+        return theme ? theme[1] : null;
+      }
 
-            document.addEventListener("DOMContentLoaded", () => {
-              // --- MENSAGENS FLASH (SWEETALERT2 DARK/LIGHT) ---
-              {% set flashed = get_flashed_messages(with_categories=true) %}
-              {% if flashed %}
-                {% for category, message in flashed %}
-                  const isDarkMode = document.body.classList.contains('dark-mode');
-                  let icon_type = "{% if category == 'success' %}success{% elif category == 'danger' or category == 'error' %}error{% else %}info{% endif %}";
+      // ====================================================================
+      // FUNÇÕES GLOBAIS DE CARREGAMENTO (LOADING STATE)
+      // ====================================================================
+      function hideLoadingState(button) {
+        if (!button || !button.originalText) return;
+        button.disabled = false;
+        button.innerHTML = button.originalText;
+        delete button.originalText;
+      }
 
-                  Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: icon_type,
-                    title: {{ message|tojson }},
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
+      function showLoadingState(button) {
+        if (!button) return;
+        button.originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Aguarde...`;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const body = document.body;
+        const toggle = document.getElementById("toggleDarkMode");
+        const sidebarToggle = document.getElementById("sidebarToggle");
+
+        // --- MENSAGENS FLASH (SWEETALERT2 DARK/LIGHT) ---
+        {% set flashed = get_flashed_messages(with_categories=true) %}
+        {% if flashed %}
+          {% for category, message in flashed %}
+            const isDarkMode = body.classList.contains('dark-mode');
+            let icon_type = "{% if category == 'success' %}success{% elif category == 'danger' or category == 'error' %}error{% else %}info{% endif %}";
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: icon_type,
+              title: {{ message|tojson }},
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+              background: isDarkMode ? '#152233' : '#fff',
+              color: isDarkMode ? '#ffffff' : '#545454',
+              customClass: {
+                  popup: isDarkMode ? 'swal2-dark-mode' : ''
+              }
+            });
+          {% endfor %}
+        {% endif %}
+
+        // Lógica Global para DELEÇÃO
+        document.querySelectorAll('.form-deletar').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const isDarkMode = body.classList.contains('dark-mode');
+                const submitButton = form.querySelector('button[type="submit"]');
+
+                Swal.fire({
+                    title: 'Tem certeza?',
+                    text: "Este registro será removido permanentemente.",
+                    icon: 'warning',
                     background: isDarkMode ? '#152233' : '#fff',
                     color: isDarkMode ? '#ffffff' : '#545454',
-                    customClass: {
-                        popup: isDarkMode ? 'swal2-dark-mode' : ''
-                    },
-                    didOpen: (toast) => {
-                      if (isDarkMode) {
-                        const icon = toast.querySelector('.swal2-icon');
-                        if (icon) {
-                          icon.style.backgroundColor = 'transparent';
-                          icon.querySelectorAll('*').forEach(child => child.style.backgroundColor = 'transparent');
-                        }
-                      }
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sim, deletar!',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        showLoadingState(submitButton);
+                        form.submit();
                     }
-                  });
-                {% endfor %}
-              {% endif %}
-
-              // Lógica Global para DELEÇÃO (Admin, Notificações, etc.)
-      document.querySelectorAll('.form-deletar').forEach(form => {
-          form.addEventListener('submit', function(e) {
-              e.preventDefault();
-              const isDarkMode = document.body.classList.contains('dark-mode');
-              const submitButton = form.querySelector('button[type="submit"]');
-
-              Swal.fire({
-                  title: 'Tem certeza?',
-                  text: "Este registro será removido permanentemente.",
-                  icon: 'warning',
-                  background: isDarkMode ? '#152233' : '#fff', // Cores Oceano Azul
-                  color: isDarkMode ? '#ffffff' : '#545454',
-                  customClass: {
-                      popup: isDarkMode ? 'swal2-dark-mode' : '',
-                  },
-                  showCancelButton: true,
-                  confirmButtonColor: '#d33',
-                  cancelButtonColor: '#6c757d',
-                  confirmButtonText: 'Sim, deletar!',
-                  cancelButtonText: 'Cancelar',
-                  didOpen: (modal) => {
-                      // Limpeza definitiva do fundo branco do ícone
-                      if (isDarkMode) {
-                          const icon = modal.querySelector('.swal2-icon');
-                          if (icon) {
-                              icon.style.backgroundColor = 'transparent';
-                              icon.querySelectorAll('*').forEach(child => child.style.backgroundColor = 'transparent');
-                          }
-                      }
-                  }
-              }).then((result) => {
-                  if (result.isConfirmed) {
-                      if (typeof showLoadingState === 'function') {
-                          showLoadingState(submitButton);
-                      }
-                      form.submit();
-                  }
-              });
-          });
-      });
-
-              // --- CONTROLES DE LAYOUT ---
-              const body = document.body;
-              const toggle = document.getElementById("toggleDarkMode");
-              const sidebarToggle = document.getElementById("sidebarToggle");
-
-              // Sidebar Toggle
-              if (sidebarToggle) {
-                sidebarToggle.addEventListener("click", () => {
-                  body.classList.toggle("sidebar-collapsed");
                 });
-              }
-
-              // Dark Mode Logic
-              if (toggle) {
-                if (localStorage.getItem("dark-mode") === "enabled") {
-                  body.classList.add("dark-mode");
-                  toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-                }
-
-                toggle.addEventListener("click", () => {
-                  body.classList.toggle("dark-mode");
-                  const enabled = body.classList.contains("dark-mode");
-                  localStorage.setItem("dark-mode", enabled ? "enabled" : "disabled");
-                  toggle.innerHTML = enabled ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-stars"></i>';
-                });
-              }
-
-              // --- LOADING UNIVERSAL EM FORMS ---
-              document.querySelectorAll('form:not(.form-deletar):not(.form-exportar)').forEach(form => {
-                form.addEventListener('submit', function() {
-                  const btn = this.querySelector('button[type="submit"]');
-                  if (btn) showLoadingState(btn);
-                });
-              });
             });
+        });
+
+        // --- CONTROLES DE LAYOUT ---
+
+        // Sidebar Toggle
+        if (sidebarToggle) {
+          sidebarToggle.addEventListener("click", () => {
+            body.classList.toggle("sidebar-collapsed");
+          });
+        }
+
+        // Dark Mode Logic (Cookie Based)
+        if (toggle) {
+          const savedTheme = getThemeFromCookie();
+
+          // Se o cookie diz dark, garante que a classe esteja lá
+          if (savedTheme === "dark") {
+            body.classList.add("dark-mode");
+            toggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
+          }
+
+          toggle.addEventListener("click", () => {
+            body.classList.toggle("dark-mode");
+            const isDark = body.classList.contains("dark-mode");
+
+            // Salva no Cookie e remove lixo do localStorage antigo
+            setThemeCookie(isDark ? "dark" : "light");
+            localStorage.removeItem("dark-mode");
+
+            toggle.innerHTML = isDark
+              ? '<i class="bi bi-sun-fill"></i>'
+              : '<i class="bi bi-moon-stars"></i>';
+          });
+        }
+
+        // --- LOADING UNIVERSAL EM FORMS ---
+        document.querySelectorAll('form:not(.form-deletar):not(.form-exportar)').forEach(form => {
+          form.addEventListener('submit', function() {
+            const btn = this.querySelector('button[type="submit"]');
+            if (btn) showLoadingState(btn);
+          });
+        });
+      });
     </script>
     {% block scripts %}{% endblock %}
   </body>

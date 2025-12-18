@@ -5,6 +5,24 @@
    ========================================= */
 
 /* -----------------------------------------
+   DARK COOKIE
+   ----------------------------------------- */
+
+/* CSS de prioridade máxima */
+html.dark-mode {
+    background-color: #101927 !important; /* Use a cor exata do seu dark mode */
+}
+
+body.dark-mode {
+    background-color: #101927 !important;
+}
+
+/* Evita que a transição de cores ocorra no carregamento inicial */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* -----------------------------------------
    1) VARIÁVEIS GLOBAIS
    ----------------------------------------- */
 :root {
@@ -37,8 +55,6 @@
 /* -----------------------------------------
    2) RESET, TIPOGRAFIA E LINKS
    ----------------------------------------- */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
 
 body {
   margin: 0;
