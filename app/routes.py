@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app import db
 from app.models import Usuario, Solicitacao, Notificacao
@@ -522,8 +523,13 @@ from openpyxl.utils import get_column_letter
 def aplicar_filtros_base(query, filtro_data, uvis_id):
     """Aplica o filtro de mês/ano e opcionalmente o filtro de UVIS (usuario_id)."""
     
-    # Filtro de Mês/Ano (obrigatório)
-    query = query.filter(db.func.strftime('%Y-%m', Solicitacao.data_criacao) == filtro_data)
+    # --- AJUSTE DE COMPATIBILIDADE PARA O RENDER (POSTGRES) ---
+    if db.engine.name == 'postgresql':
+        # No PostgreSQL usamos to_char
+        query = query.filter(db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM') == filtro_data)
+    else:
+        # No SQLite (seu PC) continuamos com strftime
+        query = query.filter(db.func.strftime('%Y-%m', Solicitacao.data_criacao) == filtro_data)
     
     # Filtro de UVIS (opcional)
     if uvis_id:
@@ -1557,10 +1563,11 @@ def agenda_exportar_excel():
         query = query.filter(Solicitacao.status == filtro_status)
 
     if mes and ano:
-        filtro_mesano = f"{ano}-{mes:02d}"
-        query = query.filter(
-            db.func.strftime("%Y-%m", Solicitacao.data_agendamento) == filtro_mesano
-        )
+    filtro_mesano = f"{ano}-{mes:02d}"
+    if db.engine.name == 'postgresql':
+        query = query.filter(db.func.to_char(Solicitacao.data_agendamento, "YYYY-MM") == filtro_mesano)
+    else:
+        query = query.filter(db.func.strftime("%Y-%m", Solicitacao.data_agendamento) == filtro_mesano)
 
     query = query.order_by(
         Solicitacao.data_agendamento.desc(),
