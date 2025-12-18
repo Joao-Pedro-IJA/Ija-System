@@ -115,5 +115,9 @@ def verificar_banco():
 
 if __name__ == "__main__":
     verificar_banco()
-    print(">>> INICIANDO SERVIDOR FLASK...")
-    app.run(debug=False)
+    # Comente ou remova as linhas abaixo para o Render:
+    # print(">>> INICIANDO SERVIDOR FLASK...")
+    # app.run(debug=False) 
+    
+    # Adicione este print para você saber que ele terminou:
+    print(">>> Banco de dados pronto! Passando o controle para o Gunicorn...")
