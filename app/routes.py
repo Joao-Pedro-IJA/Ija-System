@@ -742,14 +742,13 @@ def exportar_relatorio_pdf():
     orient = request.args.get('orient', default='portrait')  # 'portrait' ou 'landscape'
     filtro_data = f"{ano}-{mes:02d}"
 
-    # 🔐 Controle de UVIS (igual ao HTML /relatorios)
     if current_user.tipo_usuario == 'uvis':
         uvis_id = current_user.id
     else:
         uvis_id = request.args.get('uvis_id', type=int)
 
     # -------------------------
-    # 2. Query base (para contagens/agrupamentos) e query detalhada
+    # 2. Query base e detalhe
     # -------------------------
     base_query = aplicar_filtros_base(
         db.session.query(Solicitacao),
@@ -766,7 +765,7 @@ def exportar_relatorio_pdf():
     query_results = query_detalhe.order_by(Solicitacao.data_criacao.desc()).all()
 
     # -------------------------
-    # 3. Totais (igual ao /relatorios)
+    # 3. Totais
     # -------------------------
     total_solicitacoes = base_query.count()
     total_aprovadas = base_query.filter(Solicitacao.status == "APROVADO").count()
@@ -786,7 +785,7 @@ def exportar_relatorio_pdf():
     }
 
     # -------------------------
-    # 4. AGRUPAMENTOS COMPLETOS (IGUAL ao /relatorios)
+    # 4. Agrupamentos
     # -------------------------
     dados_regiao = [
         (regiao or "Não informado", total)
@@ -856,7 +855,6 @@ def exportar_relatorio_pdf():
         )
     ]
 
-    # Histórico mensal (igual ao /relatorios)
     if db.engine.name == 'postgresql':
         func_mes = db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM')
     else:
@@ -884,18 +882,54 @@ def exportar_relatorio_pdf():
         caminho_pdf,
         pagesize=pagesize,
         leftMargin=14*mm, rightMargin=14*mm,
-        topMargin=14*mm, bottomMargin=18*mm
+        topMargin=16*mm, bottomMargin=16*mm
     )
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('title', parent=styles['Title'], fontSize=20, alignment=1,
-                                 textColor=colors.HexColor('#0d6efd'))
-    section_h = ParagraphStyle('sec', parent=styles['Heading2'], fontSize=12,
-                               textColor=colors.HexColor('#0d6efd'))
-    normal = styles['Normal']
+
+    # Tipografia melhor
+    title_style = ParagraphStyle(
+        'title',
+        parent=styles['Title'],
+        fontSize=18,
+        leading=22,
+        alignment=1,
+        textColor=colors.HexColor('#0d6efd'),
+        spaceAfter=10
+    )
+
+    subtitle_style = ParagraphStyle(
+        'subtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=14,
+        alignment=1,
+        textColor=colors.HexColor('#555'),
+        spaceAfter=12
+    )
+
+    section_h = ParagraphStyle(
+        'sec',
+        parent=styles['Heading2'],
+        fontSize=12,
+        leading=16,
+        textColor=colors.HexColor('#0d6efd'),
+        spaceBefore=10,
+        spaceAfter=6
+    )
+
+    normal = ParagraphStyle(
+        'normal',
+        parent=styles['Normal'],
+        fontSize=9.5,
+        leading=13
+    )
+
     cell_style = ParagraphStyle(
-        'cell', parent=styles['BodyText'],
-        fontSize=7.4, leading=9,
+        'cell',
+        parent=styles['BodyText'],
+        fontSize=8.6,
+        leading=11,
         textColor=colors.HexColor('#222'),
         wordWrap='CJK',
         splitLongWords=True
@@ -904,118 +938,107 @@ def exportar_relatorio_pdf():
     story = []
 
     # -------------------------
-    # Capa / Resumo
+    # CAPA (Resumo)
     # -------------------------
     story.append(Paragraph(f"Relatório Mensal — {mes:02d}/{ano}", title_style))
-    story.append(Spacer(1, 8))
-    resumo_box = [
-        ['Métrica', 'Quantidade'],
-        ['Total de Solicitações', str(total_solicitacoes)],
-        ['Aprovadas', str(total_aprovadas)],
-        ['Aprovadas c/ Recomendações', str(total_aprovadas_com_recomendacoes)],
-        ['Recusadas', str(total_recusadas)],
-        ['Em Análise', str(total_analise)],
-        ['Pendentes', str(total_pendentes)]
-    ]
-    story.append(Table(resumo_box, colWidths=[90*mm, 45*mm], style=[
-        ('GRID', (0,0), (-1,-1), 0.25, colors.lightgrey),
-        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#0d6efd')),
-        ('TEXTCOLOR',(0,0),(-1,0),colors.white),
-        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold')
-    ]))
-    story.append(PageBreak())
 
-    # -------------------------
-    # Gráficos (mantidos)
-    # -------------------------
-    def safe_img_from_plt(fig, width_mm=155):
-        bio = BytesIO()
-        fig.tight_layout()
-        fig.savefig(bio, format='png', dpi=180, bbox_inches='tight')
-        plt.close(fig)
-        bio.seek(0)
-        return RLImage(bio, width=width_mm*mm)
-
-    if MATPLOTLIB_AVAILABLE:
-        try:
-            labels = [s for s, _ in dados_status]
-            values = [c for _, c in dados_status]
-            colors_status = [STATUS_COLORS.get(s, "#bdc3c7") for s in labels]
-
-            fig1, ax1 = plt.subplots(figsize=(5.2, 2.2))
-            def autopct(p): return f'{p:.0f}%' if p >= 6 else ''
-            wedges, *_ = ax1.pie(
-                values or [1],
-                labels=None,
-                colors=colors_status,
-                autopct=autopct,
-                startangle=90,
-                pctdistance=0.75,
-                textprops={'fontsize': 8}
-            )
-            centre_circle = plt.Circle((0, 0), 0.55, fc='white')
-            ax1.add_artist(centre_circle)
-            ax1.legend(wedges, labels, loc='center left', bbox_to_anchor=(1.02, 0.5),
-                       fontsize=8, frameon=False)
-            ax1.set_title('Distribuição por Status', fontsize=9)
-            ax1.axis('equal')
-            story.append(safe_img_from_plt(fig1, 145))
-            story.append(Spacer(1, 6))
-
-            u_names = [u for u, _ in dados_unidade[:8]]
-            u_vals = [c for _, c in dados_unidade[:8]]
-            fig2, ax2 = plt.subplots(figsize=(6.2, 2.2))
-            ax2.barh(u_names[::-1] or ['Nenhum'], u_vals[::-1] or [0])
-            ax2.set_xlabel('Total', fontsize=8)
-            ax2.set_title('Top UVIS', fontsize=9)
-            ax2.tick_params(axis='both', labelsize=8)
-            ax2.grid(axis='x', linestyle=':', linewidth=0.5)
-            story.append(safe_img_from_plt(fig2, 155))
-            story.append(Spacer(1, 6))
-
-            months = [m for m, _ in dados_mensais]
-            counts = [c for _, c in dados_mensais]
-            fig3, ax3 = plt.subplots(figsize=(6.4, 2.2))
-            if months:
-                ax3.plot(range(len(months)), counts, marker='o', linewidth=1)
-                ax3.set_xticks(range(len(months)))
-                ax3.set_xticklabels(months, rotation=45, ha='right', fontsize=8)
-            ax3.set_title('Histórico Mensal', fontsize=9)
-            ax3.tick_params(axis='y', labelsize=8)
-            ax3.grid(axis='y', linestyle=':', linewidth=0.5)
-            story.append(safe_img_from_plt(fig3, 160))
-            story.append(Spacer(1, 6))
-
-        except Exception:
-            story.append(Paragraph("Gráficos indisponíveis (erro ao gerar).", normal))
-            story.append(Spacer(1, 6))
+    filtro_txt = f"Filtro: {filtro_data}"
+    if uvis_id:
+        filtro_txt += f" | UVIS ID: {uvis_id}"
     else:
-        story.append(Paragraph("Matplotlib não disponível — gráficos foram omitidos.", normal))
-        story.append(Spacer(1, 6))
+        filtro_txt += " | UVIS: Todas"
+    story.append(Paragraph(filtro_txt, subtitle_style))
+
+    # Cards do resumo (bem mais bonito)
+    def resumo_cards():
+        cards = [
+            ("Total", total_solicitacoes, '#0d6efd'),
+            ("Aprovadas", total_aprovadas, '#198754'),
+            ("Aprov. c/ Recom.", total_aprovadas_com_recomendacoes, '#6c757d'),
+            ("Negadas", total_recusadas, '#dc3545'),
+            ("Em Análise", total_analise, '#ffc107'),
+            ("Pendentes", total_pendentes, '#0dcaf0'),
+        ]
+
+        rows = []
+        row = []
+        for i, (label, value, hexcolor) in enumerate(cards, start=1):
+            box = Table(
+                [
+                    [Paragraph(label, ParagraphStyle('l', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#666')))],
+                    [Paragraph(str(value), ParagraphStyle('v', parent=styles['Normal'], fontSize=18, leading=20, textColor=colors.HexColor(hexcolor)))]
+                ],
+                colWidths=[48*mm] if orient == 'portrait' else [52*mm],
+            )
+            box.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
+                ('BOX', (0,0), (-1,-1), 0.6, colors.HexColor('#e5e7eb')),
+                ('LEFTPADDING', (0,0), (-1,-1), 8),
+                ('RIGHTPADDING', (0,0), (-1,-1), 8),
+                ('TOPPADDING', (0,0), (-1,-1), 6),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ]))
+
+            row.append(box)
+            if len(row) == 3:
+                rows.append(row)
+                row = []
+
+        if row:
+            # completa a linha
+            while len(row) < 3:
+                row.append(Spacer(1, 1))
+            rows.append(row)
+
+        grid = Table(rows, colWidths=None)
+        grid.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ]))
+        return grid
+
+    story.append(resumo_cards())
+    story.append(Spacer(1, 10))
 
     # -------------------------
-    # ✅ NOVO: Tabelas com TODOS os agrupamentos do /relatorios
+    # TABELAS (DADOS ESCRITOS PRIMEIRO)
     # -------------------------
-    def add_count_table(titulo, dados):
-        story.append(PageBreak())
+    def add_count_table(titulo, dados, col1="Categoria"):
         story.append(Paragraph(titulo, section_h))
-        rows = [[Paragraph("Categoria", cell_style), Paragraph("Total", cell_style)]]
+
+        rows = [
+            [Paragraph(col1, ParagraphStyle('th', parent=cell_style, textColor=colors.white, fontSize=9)),
+             Paragraph("Total", ParagraphStyle('th2', parent=cell_style, textColor=colors.white, fontSize=9))]
+        ]
+
         for nome, total in (dados or [("Nenhum", 0)]):
             rows.append([Paragraph(str(nome), cell_style), Paragraph(str(total), cell_style)])
 
-        tbl = Table(rows, repeatRows=1, colWidths=[140*mm, 25*mm])
+        tbl = Table(rows, repeatRows=1, colWidths=[140*mm, 25*mm] if orient == 'portrait' else [190*mm, 30*mm])
         tbl.setStyle(TableStyle([
             ('BACKGROUND', (0,0),(-1,0),colors.HexColor('#0d6efd')),
             ('TEXTCOLOR',(0,0),(-1,0),colors.white),
             ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-            ('GRID',(0,0),(-1,-1),0.25,colors.lightgrey),
+            ('FONTSIZE',(0,0),(-1,0),9),
+            ('GRID',(0,0),(-1,-1),0.25,colors.HexColor('#d9dee7')),
+            ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#fbfdff')]),
             ('VALIGN',(0,0),(-1,-1),'TOP'),
-            ('LEFTPADDING',(0,0),(-1,-1),3),
-            ('RIGHTPADDING',(0,0),(-1,-1),3),
-            ('TOPPADDING',(0,0),(-1,-1),2),
-            ('BOTTOMPADDING',(0,0),(-1,-1),2),
+            ('LEFTPADDING',(0,0),(-1,-1),6),
+            ('RIGHTPADDING',(0,0),(-1,-1),6),
+            ('TOPPADDING',(0,0),(-1,-1),4),
+            ('BOTTOMPADDING',(0,0),(-1,-1),4),
         ]))
         story.append(tbl)
+        story.append(Spacer(1, 10))
+
+    # Um “Resumo por agrupamento” em sequência (mais agradável)
+    story.append(Paragraph("Resumo por Agrupamentos", section_h))
+    story.append(Paragraph("Abaixo estão os agrupamentos do mês selecionado, apresentados em formato de tabela.", normal))
+    story.append(Spacer(1, 6))
 
     add_count_table("Agrupamento — Região", dados_regiao)
     add_count_table("Agrupamento — Status", dados_status)
@@ -1023,20 +1046,101 @@ def exportar_relatorio_pdf():
     add_count_table("Agrupamento — Tipo de Visita", dados_tipo_visita)
     add_count_table("Agrupamento — Altura do Voo", dados_altura_voo)
     add_count_table("Agrupamento — Unidade (UVIS)", dados_unidade)
-    add_count_table("Histórico Mensal (tabela)", dados_mensais)
+    add_count_table("Histórico Mensal (tabela)", dados_mensais, col1="Mês")
 
     # -------------------------
-    # ✅ NOVO: Registros detalhados (mais completo)
+    # ✅ GRÁFICOS (AGORA DEPOIS DOS DADOS ESCRITOS)
     # -------------------------
     story.append(PageBreak())
-    story.append(Paragraph("Registros Detalhados (Completo)", section_h))
+    story.append(Paragraph("Gráficos", section_h))
+    story.append(Paragraph("Os gráficos abaixo representam visualmente os dados apresentados nas tabelas anteriores.", normal))
+    story.append(Spacer(1, 8))
 
-    # Tentei cobrir os mesmos eixos do relatório: Unidade, Região, Status, Foco, Tipo Visita, Altura Voo etc.
+    def safe_img_from_plt(fig, width_mm=170):
+        bio = BytesIO()
+        fig.tight_layout()
+        fig.savefig(bio, format='png', dpi=220, bbox_inches='tight')
+        plt.close(fig)
+        bio.seek(0)
+        return RLImage(bio, width=width_mm*mm)
+
+    if MATPLOTLIB_AVAILABLE:
+        try:
+            # 1) Donut por status (mais limpo)
+            labels = [s for s, _ in dados_status]
+            values = [c for _, c in dados_status]
+            colors_status = [STATUS_COLORS.get(s, "#bdc3c7") for s in labels]
+
+            fig1, ax1 = plt.subplots(figsize=(6.4, 3.0))
+            def autopct(p): return f'{p:.0f}%' if p >= 6 else ''
+            wedges, *_ = ax1.pie(
+                values or [1],
+                labels=None,
+                colors=colors_status,
+                autopct=autopct,
+                startangle=90,
+                pctdistance=0.78,
+                textprops={'fontsize': 9}
+            )
+            centre_circle = plt.Circle((0, 0), 0.58, fc='white')
+            ax1.add_artist(centre_circle)
+            ax1.legend(wedges, labels, loc='center left', bbox_to_anchor=(1.02, 0.5),
+                       fontsize=9, frameon=False)
+            ax1.set_title('Distribuição por Status', fontsize=11, pad=10)
+            ax1.axis('equal')
+
+            story.append(safe_img_from_plt(fig1, width_mm=170))
+            story.append(Spacer(1, 10))
+
+            # 2) Top UVIS (barra horizontal)
+            u_names = [u for u, _ in dados_unidade[:10]]
+            u_vals = [c for _, c in dados_unidade[:10]]
+
+            fig2, ax2 = plt.subplots(figsize=(7.2, 3.0))
+            ax2.barh(u_names[::-1] or ['Nenhum'], u_vals[::-1] or [0])
+            ax2.set_xlabel('Total', fontsize=9)
+            ax2.set_title('Top UVIS', fontsize=11, pad=10)
+            ax2.tick_params(axis='both', labelsize=9)
+            ax2.grid(axis='x', linestyle=':', linewidth=0.6, alpha=0.6)
+
+            story.append(safe_img_from_plt(fig2, width_mm=180 if orient == 'landscape' else 170))
+            story.append(Spacer(1, 10))
+
+            # 3) Histórico mensal (linha)
+            months = [m for m, _ in dados_mensais]
+            counts = [c for _, c in dados_mensais]
+
+            fig3, ax3 = plt.subplots(figsize=(7.2, 3.0))
+            if months:
+                ax3.plot(range(len(months)), counts, marker='o', linewidth=1.6)
+                ax3.set_xticks(range(len(months)))
+                ax3.set_xticklabels(months, rotation=45, ha='right', fontsize=9)
+            ax3.set_title('Histórico Mensal', fontsize=11, pad=10)
+            ax3.tick_params(axis='y', labelsize=9)
+            ax3.grid(axis='y', linestyle=':', linewidth=0.6, alpha=0.6)
+
+            story.append(safe_img_from_plt(fig3, width_mm=185 if orient == 'landscape' else 170))
+            story.append(Spacer(1, 8))
+
+        except Exception:
+            story.append(Paragraph("Gráficos indisponíveis (erro ao gerar).", normal))
+    else:
+        story.append(Paragraph("Matplotlib não disponível — gráficos foram omitidos.", normal))
+
+    # -------------------------
+    # DETALHES (opcional: se quiser manter, deixa por último)
+    # -------------------------
+    story.append(PageBreak())
+    story.append(Paragraph("Registros Detalhados", section_h))
+    story.append(Paragraph("Listagem completa dos registros retornados pelo filtro selecionado.", normal))
+    story.append(Spacer(1, 8))
+
     registros_header = [
         'Data', 'Hora', 'Unidade', 'Região', 'Protocolo',
         'Status', 'Foco', 'Tipo Visita', 'Altura Voo', 'Observação'
     ]
-    registros_rows = [[Paragraph(h, cell_style) for h in registros_header]]
+    registros_rows = [[Paragraph(h, ParagraphStyle('hdr', parent=cell_style, textColor=colors.white, fontSize=8.7))
+                       for h in registros_header]]
 
     for s, u in query_results:
         data_str = s.data_criacao.strftime("%d/%m/%Y") if getattr(s, 'data_criacao', None) else ''
@@ -1066,7 +1170,7 @@ def exportar_relatorio_pdf():
             Paragraph(str(obs), cell_style),
         ])
 
-    chunk_size = 26  # um pouco menor porque tem mais colunas
+    chunk_size = 26
     colWidths = [18*mm, 14*mm, 28*mm, 22*mm, 22*mm, 22*mm, 22*mm, 26*mm, 18*mm, 60*mm]
 
     for i in range(0, len(registros_rows), chunk_size):
@@ -1076,14 +1180,14 @@ def exportar_relatorio_pdf():
             ('BACKGROUND', (0,0),(-1,0),colors.HexColor('#0d6efd')),
             ('TEXTCOLOR',(0,0),(-1,0),colors.white),
             ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-            ('FONTSIZE',(0,0),(-1,0),8),
-            ('GRID',(0,0),(-1,-1),0.25,colors.lightgrey),
+            ('FONTSIZE',(0,0),(-1,0),8.4),
+            ('GRID',(0,0),(-1,-1),0.25,colors.HexColor('#d9dee7')),
             ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#fbfdff')]),
             ('VALIGN',(0,0),(-1,-1),'TOP'),
-            ('LEFTPADDING',(0,0),(-1,-1),3),
-            ('RIGHTPADDING',(0,0),(-1,-1),3),
-            ('TOPPADDING',(0,0),(-1,-1),2),
-            ('BOTTOMPADDING',(0,0),(-1,-1),2),
+            ('LEFTPADDING',(0,0),(-1,-1),4),
+            ('RIGHTPADDING',(0,0),(-1,-1),4),
+            ('TOPPADDING',(0,0),(-1,-1),3),
+            ('BOTTOMPADDING',(0,0),(-1,-1),3),
         ]))
         story.append(tbl)
         story.append(Spacer(1, 6))
@@ -1096,12 +1200,14 @@ def exportar_relatorio_pdf():
     def _header_footer(canvas, doc_):
         canvas.saveState()
         w, h = pagesize
+
         canvas.setFillColor(colors.HexColor('#0d6efd'))
-        canvas.rect(doc_.leftMargin, h-(12*mm), doc_.width, 4, fill=1, stroke=0)
+        canvas.rect(doc_.leftMargin, h-(12*mm), doc_.width, 3, fill=1, stroke=0)
+
         canvas.setFont("Helvetica", 8)
         canvas.setFillColor(colors.HexColor('#777'))
-        canvas.drawString(doc_.leftMargin, 10*mm, "Sistema de Gestão de Solicitações — IJASystem")
-        canvas.drawRightString(doc_.leftMargin + doc_.width, 10*mm, f"Página {canvas.getPageNumber()}")
+        canvas.drawString(doc_.leftMargin, 9*mm, f"Relatório — {mes:02d}/{ano} — IJASystem")
+        canvas.drawRightString(doc_.leftMargin + doc_.width, 9*mm, f"Página {canvas.getPageNumber()}")
         canvas.restoreState()
 
     doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer)
@@ -1116,6 +1222,7 @@ def exportar_relatorio_pdf():
         download_name=f"{nome_arquivo}.pdf",
         mimetype="application/pdf"
     )
+
 
 # =======================================================================
 # ROTA 3: Exportar Excel (Com Filtro UVIS)

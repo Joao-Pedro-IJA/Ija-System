@@ -1,216 +1,212 @@
-  {% extends "base.html" %}
-  {% block content %}
+{% extends "base.html" %}
+{% block content %}
 
-  <div class="container mt-4 mb-4">
-    <div class="calendar-card">
-      <div class="calendar-card-header">
-        <div>
-          <h3 class="calendar-title">Agenda de Agendamentos</h3>
-          <p class="calendar-subtitle">
-            Visualize seus agendamentos por mês, semana ou lista.
-          </p>
-        </div>
-
-        <div class="d-none d-md-block">
-          <span
-            class="badge text-bg-primary"
-            style="border-radius: 999px; padding: 10px 12px"
-          >
-            Calendário
-          </span>
-        </div>
+<div class="container mt-4 mb-4">
+  <div class="calendar-card">
+    <div class="calendar-card-header">
+      <div>
+        <h3 class="calendar-title">Agenda de Agendamentos</h3>
+        <p class="calendar-subtitle">
+          Visualize seus agendamentos por mês, semana ou lista.
+        </p>
       </div>
 
-  <form method="get" action="{{ url_for('main.agenda') }}" class="card p-3 mb-4 shadow-sm rounded-4">
-    <div class="row g-2 align-items-end">
-        
-        {# CAMPO UVIS (Lógica do código 1 / Estilo do código 2) #}
+      <div class="d-none d-md-block">
+        <span
+          class="badge text-bg-primary"
+          style="border-radius: 999px; padding: 10px 12px"
+        >
+          Calendário
+        </span>
+      </div>
+    </div>
+
+    <!-- FILTROS -->
+    <form method="get" action="{{ url_for('main.agenda') }}" class="card p-3 mb-2 shadow-sm rounded-4">
+      <div class="row g-2 align-items-end">
+
+        {# CAMPO UVIS #}
         {% if pode_filtrar_uvis %}
         <div class="col-12 col-md-3">
-            <label class="small text-muted">UVIS</label>
-            <select class="form-select form-select-sm" name="uvis_id">
-                <option value="">Todas</option>
-                {% for id, nome in uvis_disponiveis %}
-                    <option value="{{ id }}" {% if filtros.uvis_id == id %}selected{% endif %}>{{ nome }}</option>
-                {% endfor %}
-            </select>
+          <label class="small text-muted">UVIS</label>
+          <select class="form-select form-select-sm" name="uvis_id">
+            <option value="">Todas</option>
+            {% for id, nome in uvis_disponiveis %}
+              <option value="{{ id }}" {% if filtros.uvis_id == id %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+          </select>
         </div>
         {% endif %}
 
-        {# CAMPO STATUS (Lógica do código 1 / Estilo do código 2) #}
+        {# CAMPO STATUS #}
         <div class="col-12 col-md-3">
-            <label class="small text-muted">Status</label>
-            <select class="form-select form-select-sm" name="status">
-                <option value="">Todos</option>
-                {% for s in status_opcoes %}
-                    <option value="{{ s }}" {% if filtros.status == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-            </select>
+          <label class="small text-muted">Status</label>
+          <select class="form-select form-select-sm" name="status">
+            <option value="">Todos</option>
+            {% for s in status_opcoes %}
+              <option value="{{ s }}" {% if filtros.status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
         </div>
 
-        {# CAMPO MÊS (Lógica do código 1: range / Estilo do código 2) #}
+        {# CAMPO MÊS #}
         <div class="col-6 col-md-2">
-            <label class="small text-muted">Mês</label>
-            <select class="form-select form-select-sm" name="mes">
-                {% for m in range(1, 13) %}
-                    <option value="{{ m }}" {% if filtros.mes == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
-                {% endfor %}
-            </select>
+          <label class="small text-muted">Mês</label>
+          <select class="form-select form-select-sm" name="mes">
+            {% for m in range(1, 13) %}
+              <option value="{{ m }}" {% if filtros.mes == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
+            {% endfor %}
+          </select>
         </div>
 
-        {# CAMPO ANO (Lógica do código 1 / Estilo do código 2) #}
+        {# CAMPO ANO #}
         <div class="col-6 col-md-2">
-            <label class="small text-muted">Ano</label>
-            <select class="form-select form-select-sm" name="ano">
-                {% for a in anos_disponiveis %}
-                    <option value="{{ a }}" {% if filtros.ano == a %}selected{% endif %}>{{ a }}</option>
-                {% endfor %}
-            </select>
+          <label class="small text-muted">Ano</label>
+          <select class="form-select form-select-sm" name="ano">
+            {% for a in anos_disponiveis %}
+              <option value="{{ a }}" {% if filtros.ano == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         {# BOTÃO FILTRAR #}
         <div class="col-12 col-md-2 d-grid">
-            <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
         </div>
 
-    </div>
-</form>
-
-      <div class="col-12">
-        <div class="col-12">
-    {% if session.user_tipo == "admin" %}
-    <div class="calendar-actions mt-2">
-    <a class="btn btn-success" href="{{ url_for('main.agenda_exportar_excel', **request.args.to_dict()) }}">
-    Exportar Excel
-</a>
-
-    </div>
-    {% endif %}
-    <!-- Comentário novo -->
-  </div>
-
-        </div>
       </div>
     </form>
-  </div>
 
+    <!-- AÇÕES (EXPORTAR) -->
+    {% if current_user.is_authenticated and current_user.tipo_usuario == "admin" %}
+      <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-success btn-sm"
+           href="{{ url_for('main.agenda_exportar_excel', **request.args.to_dict()) }}">
+          <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+        </a>
 
-      <!-- MODAL DETALHES DO AGENDAMENTO -->
-      <div class="modal fade" id="modalEvento" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content rounded-4 shadow">
-            <div class="modal-header">
-              <h5 class="modal-title">📋 Detalhes do Agendamento</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+        {# Opcional: exportar tudo ignorando filtros #}
+        <a class="btn btn-outline-success btn-sm"
+           href="{{ url_for('main.agenda_exportar_excel', all=1) }}">
+          <i class="bi bi-download me-1"></i> Exportar Tudo
+        </a>
+      </div>
+    {% endif %}
 
-            <div class="modal-body">
-              <p><strong>UVIS:</strong> <span id="m-uvis"></span></p>
-              <p><strong>Foco:</strong> <span id="m-foco"></span></p>
-              <p><strong>Hora:</strong> <span id="m-hora"></span></p>
-              <p><strong>Status:</strong> <span id="m-status"></span></p>
-            </div>
+    <!-- MODAL DETALHES DO AGENDAMENTO -->
+    <div class="modal fade" id="modalEvento" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow">
+          <div class="modal-header">
+            <h5 class="modal-title">📋 Detalhes do Agendamento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
 
-            <div class="modal-footer">
-              <button class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
-                Fechar
-              </button>
-            </div>
+          <div class="modal-body">
+            <p><strong>UVIS:</strong> <span id="m-uvis"></span></p>
+            <p><strong>Foco:</strong> <span id="m-foco"></span></p>
+            <p><strong>Hora:</strong> <span id="m-hora"></span></p>
+            <p><strong>Status:</strong> <span id="m-status"></span></p>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
+              Fechar
+            </button>
           </div>
         </div>
       </div>
-
-      <div id="calendar"></div>
     </div>
+
+    <div id="calendar"></div>
   </div>
+</div>
 
-  <!-- FullCalendar CSS/JS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css"
-    rel="stylesheet"
-  />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
+<!-- FullCalendar CSS/JS -->
+<link
+  href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css"
+  rel="stylesheet"
+/>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
 
-  <!-- Eventos do backend -->
-  <script id="eventos-dados" type="application/json">
-    {{ eventos_json | safe }}
-  </script>
+<!-- Eventos do backend -->
+<script id="eventos-dados" type="application/json">
+  {{ eventos_json | safe }}
+</script>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const eventos = JSON.parse(
-        document.getElementById("eventos-dados").textContent
-      );
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const eventos = JSON.parse(
+      document.getElementById("eventos-dados").textContent
+    );
 
-      const calendar = new FullCalendar.Calendar(
-        document.getElementById("calendar"),
-        {
-          initialView: "dayGridMonth",
-          initialDate: "{{ initial_date }}",
-          locale: "pt-br",
+    const calendar = new FullCalendar.Calendar(
+      document.getElementById("calendar"),
+      {
+        initialView: "dayGridMonth",
+        initialDate: "{{ initial_date }}",
+        locale: "pt-br",
 
-          height: "auto",
-          nowIndicator: true,
-          dayMaxEvents: true,
+        height: "auto",
+        nowIndicator: true,
+        dayMaxEvents: true,
 
-          headerToolbar: {
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,timeGridWeek,listWeek",
-          },
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,listWeek",
+        },
 
-          // ✅ TEXTOS EM PORTUGUÊS
-          buttonText: {
-            today: "Hoje",
-            month: "Mês",
-            week: "Semana",
-            day: "Dia",
-            list: "Lista",
-          },
+        buttonText: {
+          today: "Hoje",
+          month: "Mês",
+          week: "Semana",
+          day: "Dia",
+          list: "Lista",
+        },
 
-          allDayText: "Dia inteiro",
-          noEventsText: "Nenhum agendamento para exibir",
-          moreLinkText: function (n) {
-            return `+${n} mais`;
-          },
+        allDayText: "Dia inteiro",
+        noEventsText: "Nenhum agendamento para exibir",
+        moreLinkText: function (n) {
+          return `+${n} mais`;
+        },
 
-          weekText: "Sem",
-          dayHeaderFormat: { weekday: "short" },
+        weekText: "Sem",
+        dayHeaderFormat: { weekday: "short" },
 
-          events: eventos,
+        events: eventos,
 
-          /* 🎯 CONTROLE TOTAL DO CLICK */
-          eventClick: function (info) {
-            info.jsEvent.preventDefault();
+        eventClick: function (info) {
+          info.jsEvent.preventDefault();
 
-            if (info.event.url) {
-              window.location.href = info.event.url;
-              return;
-            }
+          if (info.event.url) {
+            window.location.href = info.event.url;
+            return;
+          }
 
-            const p = info.event.extendedProps || {};
+          const p = info.event.extendedProps || {};
 
-            document.getElementById("m-uvis").innerText = p.uvis || "-";
-            document.getElementById("m-foco").innerText = p.foco || "-";
-            document.getElementById("m-hora").innerText = p.hora || "-";
-            document.getElementById("m-status").innerText = p.status || "-";
+          document.getElementById("m-uvis").innerText = p.uvis || "-";
+          document.getElementById("m-foco").innerText = p.foco || "-";
+          document.getElementById("m-hora").innerText = p.hora || "-";
+          document.getElementById("m-status").innerText = p.status || "-";
 
-            const modal = new bootstrap.Modal(
-              document.getElementById("modalEvento")
-            );
-            modal.show();
-          },
+          const modal = new bootstrap.Modal(
+            document.getElementById("modalEvento")
+          );
+          modal.show();
+        },
 
-          eventDidMount: function (info) {
-            info.el.setAttribute("title", info.event.title);
-            info.el.style.cursor = info.event.url ? "pointer" : "default";
-          },
-        }
-      );
+        eventDidMount: function (info) {
+          info.el.setAttribute("title", info.event.title);
+          info.el.style.cursor = info.event.url ? "pointer" : "default";
+        },
+      }
+    );
 
-      calendar.render();
-    });
-  </script>
+    calendar.render();
+  });
+</script>
 
-  {% endblock %}
+{% endblock %}
