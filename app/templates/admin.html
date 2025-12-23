@@ -41,13 +41,11 @@
                         Em Análise</option>
                     <option value="APROVADO" {{ 'selected' if request.args.get('status')=='APROVADO' else '' }}>🟢
                         Aprovado</option>
-                    <option value="APROVADO COM RECOMENDAÇÕES" {{ 'selected' if
-                        request.args.get('status')=='APROVADO COM RECOMENDAÇÕES' else '' }}>🟠 Aprovado c/ rec.</option>
+                    <option value="APROVADO COM RECOMENDAÇÕES" {{ 'selected' if request.args.get('status')=='APROVADO COM RECOMENDAÇÕES' else '' }}>🟠 Aprovado c/ rec.</option>
                     <option value="NEGADO" {{ 'selected' if request.args.get('status')=='NEGADO' else '' }}>🔴 Negado
                     </option>
                 </select>
             </div>
-
             <div class="col-md-3">
                 <label class="small text-muted">Unidade:</label>
                 <input type="text" name="unidade" class="form-control form-control-sm" placeholder="Nome da UVIS..."
@@ -743,68 +741,100 @@ function processarArquivo(input, id) {
 
     // --- Lógica de Envio AJAX  --- //
     document.addEventListener("DOMContentLoaded", function() {
-        const forms = document.querySelectorAll('form[enctype="multipart/form-data"]');
+    const forms = document.querySelectorAll('form[enctype="multipart/form-data"]');
 
-        forms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                // Verifica se o form tem o input de anexo (para não quebrar outros forms do site)
-                if (!this.querySelector('input[name="anexo"]')) return;
+    forms.forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            // Verifica se o form tem o input de anexo
+            if (!this.querySelector('input[name="anexo"]')) return;
 
-                e.preventDefault(); // Impede o reload padrão
+            e.preventDefault(); 
 
-                const btn = this.querySelector('button[type="submit"]');
-                const textoOriginal = btn.innerHTML;
+            const btn = this.querySelector('button[type="submit"]');
+            const textoOriginal = btn.innerHTML;
+            const isDarkMode = document.body.classList.contains('dark-mode');
 
-                // Feedback visual
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+            // Feedback visual no botão
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
 
-                try {
-                    const formData = new FormData(this);
-                    
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        body: formData
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // ✅ ALERTA IDENTICO AOS OUTROS (ESTILO TOAST)
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Alterações salvas com sucesso',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        background: isDarkMode ? '#152233' : '#fff',
+                        color: isDarkMode ? '#ffffff' : '#545454',
+                        customClass: {
+                            popup: isDarkMode ? 'swal2-dark-mode' : ''
+                        }
+                    }).then(() => {
+                        // Só recarrega após o tempo do Toast ou se o usuário fechar
+                        window.location.reload();
                     });
 
-                    if (response.ok) {
-                        // Sucesso: Recarrega a página para ver o link "Ver arquivo salvo"
-                        window.location.reload();
-                    } else {
-                        alert('Erro ao salvar. Verifique se o servidor está respondendo.');
-                        btn.disabled = false;
-                        btn.innerHTML = textoOriginal;
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert('Erro de conexão.');
-                    btn.disabled = false;
-                    btn.innerHTML = textoOriginal;
+                } else {
+                    throw new Error('Erro no servidor');
                 }
-            });
+            } catch (error) {
+                console.error(error);
+                
+                // Erro também padronizado como Toast
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Erro ao salvar. Tente novamente.',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    background: isDarkMode ? '#152233' : '#fff',
+                    color: isDarkMode ? '#ffffff' : '#545454'
+                });
+
+                btn.disabled = false;
+                btn.innerHTML = textoOriginal;
+            }
         });
     });
+});
 
     // =========================================
     // 5. Lógica para esconder e mostrar justificativa (mostra só quando negado)
     // =========================================
 
     function toggleJustificativa(select, id) {
-        const box = document.getElementById('boxJustificativa' + id);
-        const input = document.getElementById('inputJustificativa' + id);
+    const box = document.getElementById('boxJustificativa' + id);
+    const input = document.getElementById('inputJustificativa' + id);
 
-        if (!box || !input) return;
+    if (!box || !input) return;
 
-        if (select.value === 'NEGADO') {
-            box.style.display = 'block';
-            input.setAttribute('required', 'required');
-            input.focus();
-        } else {
-            box.style.display = 'none';
-            input.removeAttribute('required');
-            input.value = '';
-        }
+    // Adicionei a verificação para 'APROVADO COM RECOMENDAÇÕES'
+    const statusCriaJustificativa = (select.value === 'NEGADO' || select.value === 'APROVADO COM RECOMENDAÇÕES');
+
+    if (statusCriaJustificativa) {
+        box.style.display = 'block';
+        input.setAttribute('required', 'required');
+        // Apenas foca se o usuário trocou manualmente, para não atrapalhar o scroll inicial
+        if (document.activeElement === select) input.focus(); 
+    } else {
+        box.style.display = 'none';
+        input.removeAttribute('required');
     }
+}
 
     // ✅ Executa automaticamente ao carregar a página
     document.addEventListener('DOMContentLoaded', () => {
