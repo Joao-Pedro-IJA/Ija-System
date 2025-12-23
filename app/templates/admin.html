@@ -822,8 +822,7 @@ function processarArquivo(input, id) {
 
     if (!box || !input) return;
 
-    // Adicionei a verificação para 'APROVADO COM RECOMENDAÇÕES'
-    const statusCriaJustificativa = (select.value === 'NEGADO' || select.value === 'APROVADO COM RECOMENDAÇÕES');
+    const statusCriaJustificativa = (select.value === 'NEGADO');
 
     if (statusCriaJustificativa) {
         box.style.display = 'block';

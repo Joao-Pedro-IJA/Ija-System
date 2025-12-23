@@ -83,7 +83,7 @@ class Solicitacao(db.Model):
     protocolo = db.Column(db.String(50))
     justificativa = db.Column(db.String(255))
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20), default="EM ANÁLISE")
+    status = db.Column(db.String(30), default="EM ANÁLISE")
 
     usuario_id = db.Column(
         db.Integer,
