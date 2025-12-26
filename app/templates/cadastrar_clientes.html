@@ -1,144 +1,165 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} 
 
-<div class="container mt-4 mb-4">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h4 class="mb-3">Cadastrar Cliente</h4>
+{% block content %}
+<div class="container-fluid py-4" style="max-width: 1200px;">
+  
+  {# --- Cabeçalho --- #}
+  <div class="d-flex align-items-center mb-4">
+      <h2 class="text-dark m-0">
+          <i class="bi bi-person-plus-fill me-2 text-primary"></i> Cadastrar Cliente
+      </h2>
+  </div>
 
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div class="alert alert-{{ category }} mb-3" role="alert">
-        {{ message }}
+  {# --- Mensagens de Feedback --- #}
+  {% with messages = get_flashed_messages(with_categories=true) %} 
+    {% if messages %} 
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4 rounded-3" role="alert">
+        <i class="bi bi-info-circle me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
-      {% endfor %} {% endif %} {% endwith %}
+      {% endfor %} 
+    {% endif %} 
+  {% endwith %}
 
-      <form
-        method="post"
-        action="{{ url_for('main.cadastrar_clientes') }}"
-        novalidate
-      >
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <label class="form-label"
-              >Nome do Cliente <span class="text-danger">*</span></label
-            >
-            <input
-              type="text"
-              class="form-control {% if errors.get('nome_cliente') %}is-invalid{% endif %}"
-              name="nome_cliente"
-              value="{{ form.get('nome_cliente','') }}"
-              placeholder="Ex: João Pedro"
-              required
-            />
+  {# --- Card Principal --- #}
+  <div class="card info status-primary shadow-sm rounded-4 border-0">
+    <div class="card-body p-4">
+      
+      <form method="post" action="{{ url_for('main.cadastrar_clientes') }}" novalidate>
+        
+        {# SEÇÃO 1: IDENTIFICAÇÃO #}
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-card-heading text-primary me-2 fs-5"></i>
+            <h5 class="m-0 text-primary fw-bold">Identificação</h5>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-person me-1 text-primary"></i> Nome do Cliente *
+            </label>
+            <input type="text" 
+                   class="form-control {% if errors.get('nome_cliente') %}is-invalid{% endif %}" 
+                   name="nome_cliente" 
+                   value="{{ form.get('nome_cliente','') }}" 
+                   placeholder="Ex: João Pedro" 
+                   required>
             {% if errors.get('nome_cliente') %}
             <div class="invalid-feedback">{{ errors.get('nome_cliente') }}</div>
             {% endif %}
           </div>
-
-          <div class="col-12 col-md-6">
-            <label class="form-label"
-              >Documento (CPF/CNPJ) <span class="text-danger">*</span></label
-            >
-            <input
-              type="text"
-              class="form-control {% if errors.get('documento') %}is-invalid{% endif %}"
-              name="documento"
-              id="documento"
-              value="{{ form.get('documento','') }}"
-              inputmode="numeric"
-              placeholder="CPF: 000.000.000-00 | CNPJ: 00.000.000/0000-00"
-              required
-            />
-            <div class="form-text">
-              Digite somente números — o sistema formata automaticamente e
-              valida CPF/CNPJ.
-            </div>
+          
+          <div class="col-md-6">
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-file-earmark-person me-1 text-primary"></i> Documento (CPF/CNPJ) *
+            </label>
+            <input type="text" 
+                   id="documento" 
+                   name="documento" 
+                   class="form-control {% if errors.get('documento') %}is-invalid{% endif %}" 
+                   value="{{ form.get('documento','') }}" 
+                   inputmode="numeric" 
+                   placeholder="000.000.000-00" 
+                   required>
+            <div class="form-text small">Somente números. O sistema formata automaticamente.</div>
             {% if errors.get('documento') %}
             <div class="invalid-feedback">{{ errors.get('documento') }}</div>
             {% endif %}
           </div>
+        </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">Contato</label>
-            <input
-              type="text"
-              class="form-control"
-              name="contato"
-              value="{{ form.get('contato','') }}"
-              placeholder="Ex: Responsável / Referência"
-            />
+        <hr class="text-muted opacity-25 my-4">
+
+        {# SEÇÃO 2: CONTATO #}
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-telephone-fill text-primary me-2 fs-5"></i>
+            <h5 class="m-0 text-primary fw-bold">Dados de Contato</h5>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-person-badge me-1 text-primary"></i> Responsável / Contato
+            </label>
+            <input type="text" name="contato" class="form-control" value="{{ form.get('contato','') }}" placeholder="Ex: Maria (Gerente)">
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">Telefone</label>
-            <input
-              type="text"
-              class="form-control {% if errors.get('telefone') %}is-invalid{% endif %}"
-              name="telefone"
-              id="telefone"
-              value="{{ form.get('telefone','') }}"
-              inputmode="numeric"
-              placeholder="(00) 00000-0000"
-            />
-            <div class="form-text">Com DDD. Ex: (71) 99999-9999</div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-whatsapp me-1 text-primary"></i> Telefone
+            </label>
+            <input type="text" 
+                   id="telefone" 
+                   name="telefone" 
+                   class="form-control {% if errors.get('telefone') %}is-invalid{% endif %}" 
+                   value="{{ form.get('telefone','') }}" 
+                   inputmode="numeric" 
+                   placeholder="(00) 00000-0000">
             {% if errors.get('telefone') %}
             <div class="invalid-feedback">{{ errors.get('telefone') }}</div>
             {% endif %}
           </div>
 
-          <div class="col-12 col-md-6">
-            <label class="form-label">E-mail</label>
-            <input
-              type="email"
-              class="form-control {% if errors.get('email') %}is-invalid{% endif %}"
-              name="email"
-              value="{{ form.get('email','') }}"
-              placeholder="nome@dominio.com"
-            />
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-envelope me-1 text-primary"></i> E-mail
+            </label>
+            <input type="email" 
+                   name="email" 
+                   class="form-control {% if errors.get('email') %}is-invalid{% endif %}" 
+                   value="{{ form.get('email','') }}" 
+                   placeholder="exemplo@dominio.com">
             {% if errors.get('email') %}
             <div class="invalid-feedback">{{ errors.get('email') }}</div>
             {% endif %}
           </div>
+        </div>
 
+        <hr class="text-muted opacity-25 my-4">
+
+        {# SEÇÃO 3: ENDEREÇO #}
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-geo-alt-fill text-primary me-2 fs-5"></i>
+            <h5 class="m-0 text-primary fw-bold">Localização</h5>
+        </div>
+
+        <div class="row g-3">
           <div class="col-12">
-            <label class="form-label">Endereço</label>
-            <input
-              type="text"
-              class="form-control"
-              name="endereco"
-              value="{{ form.get('endereco','') }}"
-              placeholder="Rua, número, bairro, cidade"
-            />
-          </div>
-
-          <div class="col-12 d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-primary">Salvar</button>
-            <a
-              href="{{ url_for('main.dashboard') }}"
-              class="btn btn-outline-secondary"
-              >Voltar</a
-            >
+            <label class="form-label fw-bold small text-muted">
+                <i class="bi bi-map me-1 text-primary"></i> Endereço Completo
+            </label>
+            <input type="text" name="endereco" class="form-control" value="{{ form.get('endereco','') }}" placeholder="Rua, número, bairro, cidade - UF">
           </div>
         </div>
-      </form>
 
-      <small class="text-muted d-block mt-3">
-        Campos com <span class="text-danger">*</span> são obrigatórios.
-      </small>
+        <small class="text-muted d-block mt-4">
+          Campos com <span class="text-danger">*</span> são de preenchimento obrigatório.
+        </small>
+
+        {# BOTÕES #}
+        <div class="d-flex justify-content-end gap-2 mt-5">
+          <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-danger px-4">
+              <i class="bi bi-x-lg me-1"></i> Cancelar
+          </a>
+          <button type="submit" class="btn btn-primary px-5 shadow-sm fw-bold">
+            <i class="bi bi-check-lg me-1"></i> Salvar Cliente
+          </button>
+        </div>
+
+      </form>
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-  function onlyDigits(v) {
-    return (v || "").replace(/\D/g, "");
-  }
+  // Mantive suas funções de máscara que já funcionam bem
+  function onlyDigits(v) { return (v || "").replace(/\D/g, ""); }
 
-  // Máscara CPF/CNPJ (dinâmica)
   function maskDocumento(value) {
     const d = onlyDigits(value);
-
-    // CPF (até 11)
     if (d.length <= 11) {
       let v = d.slice(0, 11);
       v = v.replace(/(\d{3})(\d)/, "$1.$2");
@@ -146,8 +167,6 @@
       v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
       return v;
     }
-
-    // CNPJ (até 14)
     let v = d.slice(0, 14);
     v = v.replace(/(\d{2})(\d)/, "$1.$2");
     v = v.replace(/(\d{3})(\d)/, "$1.$2");
@@ -156,14 +175,11 @@
     return v;
   }
 
-  // Máscara telefone BR (10/11 dígitos)
   function maskTelefone(value) {
     const d = onlyDigits(value).slice(0, 11);
-
     if (d.length <= 2) return d;
     if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    if (d.length <= 10)
-      return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   }
 
@@ -172,19 +188,14 @@
 
   if (docInput) {
     docInput.addEventListener("input", (e) => {
-      const pos = e.target.selectionStart;
       e.target.value = maskDocumento(e.target.value);
-      e.target.setSelectionRange(pos, pos);
     });
   }
 
   if (telInput) {
     telInput.addEventListener("input", (e) => {
-      const pos = e.target.selectionStart;
       e.target.value = maskTelefone(e.target.value);
-      e.target.setSelectionRange(pos, pos);
     });
   }
 </script>
-
 {% endblock %}
