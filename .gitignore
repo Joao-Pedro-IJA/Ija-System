@@ -15,7 +15,7 @@ env/
 sqlite3.db
 instance/
 sgsv.db
-.env
+*.env
 
 # 4. Configurações de Ferramentas
 .flaskenv
