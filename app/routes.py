@@ -1,9 +1,6 @@
-# ==========================================================================================================================================================================================================================================
-# IJA SYSTEM - ROTAS PRINCIPAIS
-
-# ═══════════════════════════════════════════════════════════════════════════
-# SEÇÃO 1: IMPORTAÇÕES PADRÃO PYTHON
-# ═══════════════════════════════════════════════════════════════════════════
+# ==========================
+# IMPORTS PADRÃO PYTHON
+# ==========================
 import os
 import re
 import tempfile
@@ -14,13 +11,14 @@ import json
 
 
 from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
 import uuid
 import os
 
 # ==========================
 # FLASK
 # ==========================
-from flask import (Blueprint, current_app, flash, jsonify,
+from flask import (Blueprint, after_this_request, current_app, flash, jsonify,
                    redirect, render_template, request, send_file,
                    send_from_directory, url_for)
 
@@ -399,14 +397,13 @@ def atualizar(id):
             "message": "Solicitação atualizada com sucesso!",
             "anexo_nome": pedido.anexo_nome # Retorna para o JS atualizar a interface
         }), 200
-    
     except Exception as e:
         db.session.rollback()
         # Se falhou o banco, o ideal seria remover o arquivo físico salvo (cleanup), 
         # mas em muitos casos de produção (Render) o disco é efêmero, então não é crítico.
         current_app.logger.error(f"Erro de Banco (Atualizar ID {id}): {e}")
         return jsonify({"error": "Erro ao gravar dados no banco de dados."}), 500
-
+    
 # --- NOVO PEDIDO ---
 from flask_login import login_required, current_user
 
@@ -571,267 +568,151 @@ from app import db
 from app.models import Solicitacao, Usuario
 
 
-# ==========================
-# IMPORTS PADRÃO PYTHON
-# ==========================
-import os
-import re
-import tempfile
-import unicodedata
-from datetime import date, datetime
-from io import BytesIO
-import json
-import uuid
-
-# ==========================
-# FLASK
-# ==========================
-from flask import (Blueprint, current_app, flash, jsonify,
-                   redirect, render_template, request, send_file,
-                   send_from_directory, url_for, session, abort)
-
-from flask_login import current_user, login_required, login_user, logout_user
-
-# ==========================
-# EXCEL / PDF / GRÁFICOS
-# ==========================
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate,
-                                Spacer, Table, TableStyle, Image as RLImage)
-
-try:
-    import matplotlib.pyplot as plt
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-
-# ==========================
-# SQLALCHEMY / BANCO
-# ==========================
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
-from app import db
-from app.models import Notificacao, Solicitacao, Usuario, Clientes
-
-print("--- SISTEMA OTIMIZADO E SINCRONIZADO CARREGADO ---")
-
-bp = Blueprint('main', __name__)
-
-# --- OTIMIZAÇÃO: GLOBAL CONTEXT ---
-@bp.context_processor
-def inject_globals():
-    if current_user.is_authenticated:
-        q = db.session.query(db.func.count(Notificacao.id)).filter(
-            Notificacao.lida_em.is_(None),
-            Notificacao.apagada_em.is_(None)
-        )
-        if current_user.tipo_usuario not in ["admin", "operario", "visualizar"]:
-            q = q.filter(Notificacao.usuario_id == current_user.id)
-        return dict(notif_count=q.scalar() or 0)
-    return dict(notif_count=0)
-
-# --- HELPERS ---
-@bp.app_template_filter('datetimeformat')
-def datetimeformat(value, format='%d-%m-%y'):
-    if value is None: return ""
-    try:
-        if isinstance(value, str):
-            return datetime.strptime(value, "%Y-%m-%d").strftime(format)
-        return value.strftime(format)
-    except:
-        return value
-
-def get_upload_folder():
-    folder = os.path.join(current_app.root_path, '..', 'upload-files')
-    if not os.path.exists(folder):
-        os.makedirs(folder, exist_ok=True)
-    return os.path.abspath(folder)
-
-def allowed_file(filename: str) -> bool:
-    ALLOWED = {"pdf", "png", "jpg", "jpeg", "doc", "docx", "xls", "xlsx"}
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED
-
-def aplicar_filtros_base(query, filtro_data, uvis_id):
-    if not filtro_data: return query
-    if db.engine.name == 'postgresql':
-        query = query.filter(db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM') == filtro_data)
-    else:
-        query = query.filter(db.func.strftime('%Y-%m', Solicitacao.data_criacao) == filtro_data)
-    if uvis_id:
-        query = query.filter(Solicitacao.usuario_id == uvis_id)
-    return query
-
-# --- ROTA DE RELATÓRIOS (ALTAMENTE OTIMIZADA) ---
-# ==========================
-# IMPORTS PADRÃO PYTHON
-# ==========================
-import os
-import re
-import tempfile
-import unicodedata
-from datetime import date, datetime
-from io import BytesIO
-import json
-import uuid
-
-# ==========================
-# FLASK
-# ==========================
-from flask import (Blueprint, after_this_request, current_app, flash, jsonify,
-                   redirect, render_template, request, send_file,
-                   send_from_directory, url_for, session, abort)
-
-from flask_login import current_user, login_required, login_user, logout_user
-
-# ==========================
-# EXCEL / PDF / GRÁFICOS
-# ==========================
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate,
-                                Spacer, Table, TableStyle, Image as RLImage)
-
-try:
-    import matplotlib.pyplot as plt
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-
-# ==========================
-# SQLALCHEMY / BANCO
-# ==========================
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
-from app import db
-from app.models import Notificacao, Solicitacao, Usuario, Clientes
-
-print("--- SISTEMA OTIMIZADO E SINCRONIZADO CARREGADO ---")
-
-bp = Blueprint('main', __name__)
-
-# --- OTIMIZAÇÃO: GLOBAL CONTEXT ---
-@bp.context_processor
-def inject_globals():
-    if current_user.is_authenticated:
-        q = db.session.query(db.func.count(Notificacao.id)).filter(
-            Notificacao.lida_em.is_(None),
-            Notificacao.apagada_em.is_(None)
-        )
-        if current_user.tipo_usuario not in ["admin", "operario", "visualizar"]:
-            q = q.filter(Notificacao.usuario_id == current_user.id)
-        return dict(notif_count=q.scalar() or 0)
-    return dict(notif_count=0)
-
-# --- HELPERS ---
-@bp.app_template_filter('datetimeformat')
-def datetimeformat(value, format='%d-%m-%y'):
-    if value is None: return ""
-    try:
-        if isinstance(value, str):
-            return datetime.strptime(value, "%Y-%m-%d").strftime(format)
-        return value.strftime(format)
-    except:
-        return value
-
-def get_upload_folder():
-    folder = os.path.join(current_app.root_path, '..', 'upload-files')
-    if not os.path.exists(folder):
-        os.makedirs(folder, exist_ok=True)
-    return os.path.abspath(folder)
-
-def allowed_file(filename: str) -> bool:
-    ALLOWED = {"pdf", "png", "jpg", "jpeg", "doc", "docx", "xls", "xlsx"}
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED
-
-def aplicar_filtros_base(query, filtro_data, uvis_id):
-    if not filtro_data: return query
-    if db.engine.name == 'postgresql':
-        query = query.filter(db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM') == filtro_data)
-    else:
-        query = query.filter(db.func.strftime('%Y-%m', Solicitacao.data_criacao) == filtro_data)
-    if uvis_id:
-        query = query.filter(Solicitacao.usuario_id == uvis_id)
-    return query
-
-# --- ROTA DE RELATÓRIOS (ALTAMENTE OTIMIZADA) ---
 @bp.route('/relatorios', methods=['GET'])
-@login_required
 def relatorios():
-    """
-    Gera estatísticas e dados para gráficos.
-    Otimizada para reduzir roundtrips ao banco de dados usando agrupamentos.
-    """
+    if not current_user.is_authenticated:
+        return redirect(url_for('main.login'))
+
     try:
-        # 1. Parâmetros de Filtro
+        # 🔹 Parâmetros de Filtro
         mes_atual = request.args.get('mes', datetime.now().month, type=int)
         ano_atual = request.args.get('ano', datetime.now().year, type=int)
         filtro_data = f"{ano_atual}-{mes_atual:02d}"
 
-        uvis_id = current_user.id if current_user.tipo_usuario == 'uvis' else request.args.get('uvis_id', type=int)
+        # 🔐 Controle de UVIS
+        if current_user.tipo_usuario == 'uvis':
+            uvis_id = current_user.id
+        else:
+            uvis_id = request.args.get('uvis_id', type=int)
 
-        # 2. UVIS disponíveis para filtro (Apenas se for admin/operário)
+        # 🔹 UVIS disponíveis (admin / operário / visualizar)
         uvis_disponiveis = []
         if current_user.tipo_usuario in ['admin', 'operario', 'visualizar']:
-            uvis_disponiveis = db.session.query(Usuario.id, Usuario.nome_uvis)\
-                .filter(Usuario.tipo_usuario == 'uvis')\
-                .order_by(Usuario.nome_uvis).all()
+            uvis_disponiveis = [
+                (u.id, u.nome_uvis)
+                for u in (
+                    db.session.query(Usuario.id, Usuario.nome_uvis)
+                    .filter(Usuario.tipo_usuario == 'uvis')
+                    .order_by(Usuario.nome_uvis)
+                    .all()
+                )
+            ]
 
-        # 3. Definição da Query Base Otimizada
-        base_query = aplicar_filtros_base(db.session.query(Solicitacao), filtro_data, uvis_id)
+        # 🔹 Histórico mensal (Postgres x SQLite)
+        if db.engine.name == 'postgresql':
+            func_mes = db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM')
+        else:
+            func_mes = db.func.strftime('%Y-%m', Solicitacao.data_criacao)
 
-        # 4. OTIMIZAÇÃO DE TOTAIS: Uma única consulta para todos os status
-        status_counts = base_query.with_entities(Solicitacao.status, db.func.count(Solicitacao.id))\
-            .group_by(Solicitacao.status).all()
-        
-        status_dict = {s: count for s, count in status_counts}
-        
-        total_solicitacoes = sum(status_dict.values())
-        total_aprovadas = status_dict.get("APROVADO", 0)
-        total_aprovadas_com_recomendacoes = status_dict.get("APROVADO COM RECOMENDAÇÕES", 0)
-        total_recusadas = status_dict.get("NEGADO", 0)
-        total_analise = status_dict.get("EM ANÁLISE", 0)
-        total_pendentes = status_dict.get("PENDENTE", 0)
+        # ✅ Mantive ordem cronológica por mês (pra gráfico)
+        dados_mensais = [
+            (mes, total)
+            for mes, total in (
+                db.session.query(func_mes.label('mes'), db.func.count(Solicitacao.id))
+                .group_by('mes')
+                .order_by('mes')
+                .all()
+            )
+        ]
 
-        # 5. Agrupamentos para Gráficos (Consultas diretas e limpas)
-        def get_grouped_data(entities, group_by_col):
-            return base_query.with_entities(*entities)\
-                .group_by(group_by_col)\
-                .order_by(db.func.count(Solicitacao.id).desc()).all()
+        anos_disponiveis = (
+            sorted({m.split('-')[0] for m, _ in dados_mensais}, reverse=True)
+            if dados_mensais else [ano_atual]
+        )
 
-        dados_regiao = db.session.query(Usuario.regiao, db.func.count(Solicitacao.id))\
-            .join(Usuario).filter(Solicitacao.usuario_id == Usuario.id)
-        dados_regiao = aplicar_filtros_base(dados_regiao, filtro_data, uvis_id)\
-            .group_by(Usuario.regiao).order_by(db.func.count(Solicitacao.id).desc()).all()
+        # 🔹 Query base única
+        base_query = aplicar_filtros_base(
+            db.session.query(Solicitacao),
+            filtro_data,
+            uvis_id
+        )
 
-        dados_status = status_counts # Já calculado acima, economizamos 1 query!
-        dados_foco = get_grouped_data([Solicitacao.foco, db.func.count(Solicitacao.id)], Solicitacao.foco)
-        dados_tipo_visita = get_grouped_data([Solicitacao.tipo_visita, db.func.count(Solicitacao.id)], Solicitacao.tipo_visita)
-        dados_altura_voo = get_grouped_data([Solicitacao.altura_voo, db.func.count(Solicitacao.id)], Solicitacao.altura_voo)
+        # 🔹 Totais
+        total_solicitacoes = base_query.count()
+        total_aprovadas = base_query.filter(Solicitacao.status == "APROVADO").count()
+        total_aprovadas_com_recomendacoes = base_query.filter(
+            Solicitacao.status == "APROVADO COM RECOMENDAÇÕES"
+        ).count()
+        total_recusadas = base_query.filter(Solicitacao.status == "NEGADO").count()
+        total_analise = base_query.filter(Solicitacao.status == "EM ANÁLISE").count()
+        total_pendentes = base_query.filter(Solicitacao.status == "PENDENTE").count()
 
-        dados_unidade = db.session.query(Usuario.nome_uvis, db.func.count(Solicitacao.id))\
-            .join(Usuario).filter(Usuario.tipo_usuario == 'uvis')
-        dados_unidade = aplicar_filtros_base(dados_unidade, filtro_data, uvis_id)\
-            .group_by(Usuario.nome_uvis).order_by(db.func.count(Solicitacao.id).desc()).all()
+        # 🔹 Agrupamentos (MAIOR -> MENOR)
 
-        # 6. Histórico Mensal (Consultar apenas os meses necessários)
-        func_mes = db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM') if db.engine.name == 'postgresql' \
-                   else db.func.strftime('%Y-%m', Solicitacao.data_criacao)
-        
-        dados_mensais = db.session.query(func_mes.label('mes'), db.func.count(Solicitacao.id))\
-            .group_by('mes').order_by('mes').all()
+        dados_regiao = [
+            (regiao or "Não informado", total)
+            for regiao, total in (
+                aplicar_filtros_base(
+                    db.session.query(Usuario.regiao, db.func.count(Solicitacao.id))
+                    .join(Usuario),
+                    filtro_data,
+                    uvis_id
+                )
+                .group_by(Usuario.regiao)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
 
-        anos_disponiveis = sorted({m[0].split('-')[0] for m in dados_mensais}, reverse=True) if dados_mensais else [ano_atual]
+        dados_status = [
+            (status or "Não informado", total)
+            for status, total in (
+                base_query
+                .with_entities(Solicitacao.status, db.func.count(Solicitacao.id))
+                .group_by(Solicitacao.status)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
+
+        dados_foco = [
+            (foco or "Não informado", total)
+            for foco, total in (
+                base_query
+                .with_entities(Solicitacao.foco, db.func.count(Solicitacao.id))
+                .group_by(Solicitacao.foco)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
+
+        dados_tipo_visita = [
+            (tipo or "Não informado", total)
+            for tipo, total in (
+                base_query
+                .with_entities(Solicitacao.tipo_visita, db.func.count(Solicitacao.id))
+                .group_by(Solicitacao.tipo_visita)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
+
+        dados_altura_voo = [
+            (altura or "Não informado", total)
+            for altura, total in (
+                base_query
+                .with_entities(Solicitacao.altura_voo, db.func.count(Solicitacao.id))
+                .group_by(Solicitacao.altura_voo)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
+
+        dados_unidade = [
+            (uvis or "Não informado", total)
+            for uvis, total in (
+                aplicar_filtros_base(
+                    db.session.query(Usuario.nome_uvis, db.func.count(Solicitacao.id))
+                    .join(Usuario)
+                    .filter(Usuario.tipo_usuario == 'uvis'),
+                    filtro_data,
+                    uvis_id
+                )
+                .group_by(Usuario.nome_uvis)
+                .order_by(db.func.count(Solicitacao.id).desc())   # ✅ maior -> menor
+                .all()
+            )
+        ]
 
         return render_template(
             'relatorios.html',
@@ -857,8 +738,13 @@ def relatorios():
 
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"ERRO NOS RELATÓRIOS: {e}")
-        return render_template("erro.html", codigo=500, titulo="Erro nos Relatórios", mensagem="Falha ao processar estatísticas.")
+        print(f"ERRO NOS RELATÓRIOS: {e}")
+        return render_template(
+            "erro.html",
+            codigo=500,
+            titulo="Erro nos Relatórios",
+            mensagem="Houve um erro técnico ao processar os dados."
+        )
 
 import os
 import tempfile
@@ -1720,6 +1606,7 @@ def deletar(id):
 from flask_login import login_required, current_user
 
 from flask_login import login_required, current_user
+import traceback
 
 from flask import request, render_template
 from flask_login import login_required, current_user
