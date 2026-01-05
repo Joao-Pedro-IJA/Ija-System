@@ -281,12 +281,13 @@
         {# BOTÕES #}
         <div class="d-flex justify-content-end gap-2 mt-5">
           <a
-            href="{{ url_for('main.dashboard') }}"
+            href="{{ url_for('main.listar_clientes') }}"
             class="btn btn-outline-danger px-4"
           >
             <i class="bi bi-x-lg me-1"></i> Cancelar
           </a>
           <button type="submit" class="btn btn-primary px-5 shadow-sm fw-bold">
+            <a href="{{ url_for('main.listar_clientes') }}"></a>
             <i class="bi bi-check-lg me-1"></i> Salvar Cliente
           </button>
         </div>
