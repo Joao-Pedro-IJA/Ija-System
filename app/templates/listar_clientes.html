@@ -90,16 +90,63 @@
                                 <td class="ps-3 text-muted">#{{ c.id }}</td>
                                 <td><span class="fw-bold">{{ c.nome_cliente }}</span></td>
                                 <td><span class="badge bg-white text-dark border">{{ c.documento_fmt }}</span></td>
-                                <td>
-                                    <div class="small fw-semibold">{{ c.contato or '-' }}</div>
-                                    <div class="text-muted small">{{ c.email or '-' }}</div>
-                                </td>
-                                <td><span class="text-info fw-semibold">{{ c.telefone_fmt or '-' }}</span></td>
+
+<!-- CONTATO / EMAIL (ABRE DIRETO NO GMAIL - SEM DEPENDER DO MAILTO) -->
+<td>
+    <div class="small fw-semibold">{{ c.contato or '-' }}</div>
+
+    <div class="text-muted small">
+        {% if c.email %}
+            {% set email_clean = c.email|trim %}
+
+            <a
+                href="https://mail.google.com/mail/?view=cm&fs=1&to={{ email_clean|urlencode }}"
+                target="_blank"
+                rel="noopener"
+                class="text-decoration-none"
+                title="Enviar e-mail (Gmail)"
+            >
+             {{ email_clean }}   
+            </a>
+        {% else %}
+            -
+        {% endif %}
+    </div>
+</td>
+
+
+<!-- TELEFONE (ABRE WHATSAPP + MENSAGEM PERSONALIZADA) -->
+<td>
+    {% if c.telefone_fmt %}
+        {# tenta limpar o telefone formatado pra virar dígitos #}
+        {% set tel = c.telefone_fmt
+            |replace('(','')|replace(')','')|replace(' ','')|replace('-','')|replace('+','') %}
+
+        {# mensagem curta: "Olá, Nome" ou "Olá, tudo bem" #}
+        {% set wa_msg = "Olá, " ~ (c.nome_cliente or "tudo bem") %}
+        {% set wa_msg_enc = wa_msg|urlencode %}
+
+        <a
+            href="https://wa.me/55{{ tel }}?text={{ wa_msg_enc }}"
+            target="_blank"
+            rel="noopener"
+            class="text-info fw-semibold text-decoration-none"
+            title="Chamar no WhatsApp"
+        >
+            <i class="bi bi-whatsapp me-1"></i>{{ c.telefone_fmt }}
+        </a>
+    {% else %}
+        <span class="text-muted">-</span>
+    {% endif %}
+</td>
+
+
                                 <td>
                                     <span class="text-truncate d-block small" style="max-width: 200px;" title="{{ c.endereco }}">
                                         {{ c.endereco or '-' }}
                                     </span>
                                 </td>
+
                                 <td class="text-center pe-3">
                                     <div class="d-flex gap-2 justify-content-center">
                                         <a href="{{ url_for('main.editar_cliente', cliente_id=c.id) }}" class="btn btn-sm btn-success text-white shadow-sm" title="Editar">
