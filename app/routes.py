@@ -2248,7 +2248,7 @@ def admin_uvis_novo():
             db.session.add(novo_user)
             db.session.commit()
             flash("UVIS cadastrada com sucesso!", "success")
-            return redirect(url_for("main.admin_dashboard"))
+            return redirect(url_for("main.admin_uvis_listar"))
         except IntegrityError:
             db.session.rollback()
             flash("Esse login já está em uso. Escolha outro.", "danger")
@@ -2901,7 +2901,7 @@ def cadastrar_clientes():
         db.session.commit()
 
         flash(f"Cliente cadastrado com sucesso! Documento salvo como {doc_fmt}.", "success")
-        return redirect(url_for("main.cadastrar_clientes"))
+        return redirect(url_for("main.listar_clientes"))
 
     return render_template("cadastrar_clientes.html", form=form, errors=errors)
 
