@@ -1288,17 +1288,26 @@ def exportar_relatorio_excel():
         Usuario.regiao
     ).join(Usuario, Usuario.id == Solicitacao.usuario_id)
 
-    # Filtro de data compatível com PostgreSQL/SQLite
+   # Filtro de data pelo AGENDAMENTO (mês/ano)
     if db.engine.name == 'postgresql':
-        query_dados = query_dados.filter(db.func.to_char(Solicitacao.data_criacao, 'YYYY-MM') == filtro_data)
+        query_dados = query_dados.filter(
+            Solicitacao.data_agendamento.isnot(None),
+            db.func.to_char(Solicitacao.data_agendamento, 'YYYY-MM') == filtro_data
+        )
     else:
-        query_dados = query_dados.filter(db.func.strftime('%Y-%m', Solicitacao.data_criacao) == filtro_data)
-
+        query_dados = query_dados.filter(
+            Solicitacao.data_agendamento.isnot(None),
+            db.func.strftime('%Y-%m', Solicitacao.data_agendamento) == filtro_data
+        )
     # Filtro opcional por UVIS
     if uvis_id:
         query_dados = query_dados.filter(Solicitacao.usuario_id == uvis_id)
 
-    dados = query_dados.order_by(Solicitacao.data_criacao.desc()).all()
+  # Ordenar pelo agendamento (e hora como critério secundário)
+    dados = query_dados.order_by(
+        Solicitacao.data_agendamento.desc(),
+        Solicitacao.hora_agendamento.desc()
+    ).all()
 
     # Se tiver filtro UVIS, pega o nome pra ajudar no nome do arquivo
     nome_uvis_filtro = None
