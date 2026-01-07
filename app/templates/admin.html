@@ -4,6 +4,104 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/chatbot.css') }}">
+    <style>
+   /* ===== Anexo Actions — MOBILE (mais bonito) ===== */
+@media (max-width: 576px) {
+
+  /* container */
+  .anexo-actions,
+  .anexo-actions-inline{
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: .6rem !important;
+    align-items: stretch !important;
+  }
+
+  /* botão "Anexar" (linha inteira) */
+  .anexo-actions .btn-anexo,
+  .anexo-actions-inline .btn-anexo,
+  .anexo-actions-inline label.btn{
+    width: 100% !important;
+    flex: 0 0 100% !important;
+
+    /* visual */
+    border-radius: 14px !important;
+    padding: .72rem .85rem !important;
+    font-weight: 600 !important;
+    letter-spacing: .2px;
+    box-shadow: 0 8px 18px rgba(16, 24, 40, .08);
+    background: rgba(13,110,253,.06);
+    border-color: rgba(13,110,253,.25) !important;
+  }
+
+  /* efeito de toque */
+  .anexo-actions .btn-anexo:active,
+  .anexo-actions-inline .btn-anexo:active{
+    transform: translateY(1px);
+    box-shadow: 0 5px 12px rgba(16, 24, 40, .10);
+  }
+
+  /* texto do arquivo (reticências) */
+  .btn-anexo{
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .45rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+  .btn-anexo > span{
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* ícone do clipe alinhado */
+  .btn-anexo i{
+    flex: 0 0 auto;
+    font-size: 1rem;
+    opacity: .9;
+  }
+
+  /* botões de ícone (visualizar/remover) */
+  .anexo-actions .btn-icon,
+  .anexo-actions-inline a.btn,
+  .anexo-actions-inline button.btn{
+    width: 46px !important;
+    height: 46px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 46px !important;
+
+    border-radius: 14px !important;
+    box-shadow: 0 8px 18px rgba(16, 24, 40, .08);
+  }
+
+  /* deixa os 2 ícones “bonitos” na segunda linha */
+  .anexo-actions-inline a.btn,
+  .anexo-actions-inline button.btn{
+    margin-top: .1rem;
+  }
+
+  /* hover suave (quando tiver) */
+  .anexo-actions-inline a.btn:hover,
+  .anexo-actions-inline button.btn:hover,
+  .anexo-actions .btn-icon:hover{
+    filter: brightness(1.03);
+  }
+
+  /* garante que o group não estoure */
+  .anexo-actions-inline,
+  .anexo-actions{
+    max-width: 100%;
+  }
+}
+
+</style>
+
 {% endblock %}
 
 {% block content %}
@@ -333,21 +431,14 @@
                                                 </span>
                                             </label>
 
-                                            
+                                            {% if p.anexo_path %}
                                             <a id="btnVisualizar{{ p.id }}_mob"
                                                 href="{{ url_for('main.baixar_anexo', id=p.id) if p.anexo_path else '#' }}"
                                                 target="_blank"
                                                 class="btn btn-success btn-sm btn-icon {% if not p.anexo_path %}d-none{% endif %}">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-
-                                            
-                                            {% if p.anexo_path %}
-                                            <form action="{{ url_for('main.remover_anexo', id=p.id) }}"
-                                                method="POST"
-                                                id="formRemoverAnexo{{ p.id }}_mob"
-                                                class="d-none">
-                                            </form>
+                                            <button type="submit" form="formRemoverAnexo{{ p.id }}" class="btn btn-sm btn-outline-danger {% if not p.anexo_path %}d-none{% endif %}" id="btnRemover{{ p.id }}"><i class="bi bi-x"></i></button>                                           
 
                                             {% endif %}
                                         </div>
@@ -463,6 +554,46 @@
             btnRemover.classList.remove('d-none');
         }
     }
+
+    // Função para resumir nomes de arquivos longos
+  function resumirNomeArquivo(nome, max = 22) {
+    if (!nome) return "";
+    if (nome.length <= max) return nome;
+
+    const dot = nome.lastIndexOf(".");
+    const ext = dot > 0 ? nome.slice(dot) : "";
+    const base = dot > 0 ? nome.slice(0, dot) : nome;
+
+    const keepStart = Math.max(8, Math.floor((max - ext.length - 3) * 0.6));
+    const keepEnd = Math.max(5, (max - ext.length - 3) - keepStart);
+
+    return base.slice(0, keepStart) + "..." + base.slice(-keepEnd) + ext;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".btn-anexo > span").forEach(span => {
+      const original = span.textContent.trim();
+      // mantém o nome completo no tooltip
+      span.setAttribute("title", original);
+
+      // tenta achar o nome após o ícone
+      const parts = original.split(" ");
+      const nome = parts.slice(1).join(" ").trim(); // remove "📎" / ícone textual
+
+      // se não conseguir separar, resume o texto todo mesmo
+      const resumido = resumirNomeArquivo(nome || original, 22);
+
+      // preserva o ícone do bootstrap dentro do span
+      const icon = span.querySelector("i");
+      if (icon) {
+        span.innerHTML = "";
+        span.appendChild(icon);
+        span.insertAdjacentText("beforeend", " " + resumido);
+      } else {
+        span.textContent = resumido;
+      }
+    });
+  });
 
 
     // --- TOGGLE JUSTIFICATIVA ---
