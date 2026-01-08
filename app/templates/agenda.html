@@ -35,21 +35,21 @@
   {% endif %}
 </div>
 
-
-    {# --- FILTROS DA AGENDA (PADRÃO SANFONA) --- #}
+{# --- FILTROS DA AGENDA (PADRÃO SANFONA) --- #}
 <div class="card shadow-sm rounded-4 mb-4 border-0">
 
   <div class="card-header border-0 p-3 d-flex justify-content-between align-items-center"
        data-bs-toggle="collapse"
        data-bs-target="#collapseFiltrosAgenda"
-       aria-expanded="false"
+       aria-expanded="{{ 'true' if (filtros.uvis_id or filtros.status) else 'false' }}"
        style="cursor: pointer;">
 
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-funnel-fill text-primary"></i>
       <span class="text-dark">Filtros da Agenda</span>
 
-      {% if filtros.uvis_id or filtros.status or filtros.mes or filtros.ano %}
+      {# bolinha só quando tem filtro REAL #}
+      {% if filtros.uvis_id or filtros.status %}
         <span class="badge bg-danger rounded-circle p-1"
               style="width: 8px; height: 8px;"></span>
       {% endif %}
@@ -58,8 +58,9 @@
     <i class="bi bi-chevron-down text-muted"></i>
   </div>
 
-  {# ⚠️ SEM "show" → sanfona sempre fechada #}
-  <div class="collapse" id="collapseFiltrosAgenda">
+  {# abre somente quando tem filtro REAL (uvis/status) #}
+  <div class="collapse {% if filtros.uvis_id or filtros.status %}show{% endif %}"
+       id="collapseFiltrosAgenda">
     <div class="card-body pt-0">
       <form method="get" action="{{ url_for('main.agenda') }}">
         <div class="row g-2 align-items-end">
@@ -121,16 +122,17 @@
           </div>
 
           {# BOTÕES #}
-          <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-success btn-sm w-100">
+          <div class="col-md-2 d-grid gap-2">
+            <button type="submit" class="btn btn-success btn-sm">
               <i class="bi bi-funnel"></i> Filtrar
             </button>
 
-            {% if filtros.uvis_id or filtros.status or filtros.mes or filtros.ano %}
+            {# limpar só quando tem filtro REAL #}
+            {% if filtros.uvis_id or filtros.status %}
               <a href="{{ url_for('main.agenda') }}"
-                 class="btn btn-outline-secondary btn-sm w-100"
+                 class="btn btn-outline-secondary btn-sm"
                  title="Limpar filtros">
-                <i class="bi bi-x-lg"></i>
+                <i class="bi bi-x-lg"></i> Limpar
               </a>
             {% endif %}
           </div>
@@ -141,65 +143,64 @@
   </div>
 </div>
 
-
-    <div class="card shadow-sm rounded-4 border-0">
-        <div class="card-body p-4">
-            <div id="calendar"></div>
-        </div>
-    </div>
+<div class="card shadow-sm rounded-4 border-0">
+  <div class="card-body p-4">
+    <div id="calendar"></div>
+  </div>
+</div>
 
 </div>
 
 <div class="modal fade" id="modalEvento" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content rounded-4 shadow border-0">
-        
-        <div class="modal-header bg-light border-bottom-0 rounded-top-4">
-          <h5 class="modal-title fw-bold text-primary">
-              <i class="bi bi-info-circle me-2"></i> Detalhes do Agendamento
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-  
-        <div class="modal-body p-4">
-          
-          <div class="mb-3">
-              <label class="small text-muted fw-bold text-uppercase">UVIS</label>
-              <div id="m-uvis" class="fs-5 fw-semibold text-dark"></div>
-          </div>
-          
-          <div class="row mb-3">
-              <div class="col-6">
-                  <label class="small text-muted fw-bold text-uppercase">Horário</label>
-                  <div class="d-flex align-items-center text-primary">
-                      <i class="bi bi-clock me-2"></i> 
-                      <span id="m-hora" class="fw-bold fs-5"></span>
-                  </div>
-              </div>
-              <div class="col-6">
-                  <label class="small text-muted fw-bold text-uppercase">Foco</label>
-                  <div class="d-flex align-items-center text-dark">
-                      <i class="bi bi-crosshair me-2 text-secondary"></i> 
-                      <span id="m-foco" class="fw-medium"></span>
-                  </div>
-              </div>
-          </div>
-  
-          <div class="mb-2">
-              <label class="small text-muted fw-bold text-uppercase d-block mb-1">Situação</label>
-              <span id="m-status" class="badge rounded-pill px-3 py-2 fs-6"></span>
-          </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow border-0">
 
+      <div class="modal-header bg-light border-bottom-0 rounded-top-4">
+        <h5 class="modal-title fw-bold text-primary">
+          <i class="bi bi-info-circle me-2"></i> Detalhes do Agendamento
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4">
+
+        <div class="mb-3">
+          <label class="small text-muted fw-bold text-uppercase">UVIS</label>
+          <div id="m-uvis" class="fs-5 fw-semibold text-dark"></div>
         </div>
-  
-        <div class="modal-footer border-top-0 pt-0">
-          <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
-              Fechar
-          </button>
+
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="small text-muted fw-bold text-uppercase">Horário</label>
+            <div class="d-flex align-items-center text-primary">
+              <i class="bi bi-clock me-2"></i>
+              <span id="m-hora" class="fw-bold fs-5"></span>
+            </div>
+          </div>
+          <div class="col-6">
+            <label class="small text-muted fw-bold text-uppercase">Foco</label>
+            <div class="d-flex align-items-center text-dark">
+              <i class="bi bi-crosshair me-2 text-secondary"></i>
+              <span id="m-foco" class="fw-medium"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="small text-muted fw-bold text-uppercase d-block mb-1">Situação</label>
+          <span id="m-status" class="badge rounded-pill px-3 py-2 fs-6"></span>
         </div>
 
       </div>
+
+      <div class="modal-footer border-top-0 pt-0">
+        <button class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+          Fechar
+        </button>
+      </div>
+
     </div>
+  </div>
 </div>
 
 {% endblock %}
@@ -218,32 +219,21 @@
     const eventos = JSON.parse(document.getElementById("eventos-dados").textContent || "[]");
     const calendarEl = document.getElementById("calendar");
 
-    // ✅ HOJE (corrige cair na semana anterior por initialDate vindo do backend)
     const hoje = new Date();
-
-    // ✅ Detecta mobile
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
-
-    // ✅ Views permitidas conforme dispositivo
-    // Mobile: só Lista
-    // Desktop: Mês + Lista (remove Semana)
     const toolbarRight = isMobile ? "listWeek" : "dayGridMonth,listWeek";
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-      // ✅ Mobile abre LISTA direto
       initialView: isMobile ? "listWeek" : "dayGridMonth",
       initialDate: hoje,
 
-      // ✅ PT-BR sempre
       locale: "pt-br",
       height: "auto",
       nowIndicator: true,
       dayMaxEvents: true,
 
-      // ✅ Texto quando não existir nada
       noEventsContent: () => "Nenhum agendamento encontrado.",
 
-      // ✅ Mais textos PT-BR
       allDayText: "Dia todo",
       moreLinkText: (n) => `+${n} mais`,
       weekText: "Semana",
@@ -254,7 +244,6 @@
         right: toolbarRight,
       },
 
-      // ✅ Botões PT-BR (e sem “Semana” no desktop)
       buttonText: {
         today: "Hoje",
         month: "Mês",
@@ -263,7 +252,6 @@
         list: "Lista",
       },
 
-      // ✅ melhora leitura do LISTA no mobile
       listDayFormat: { weekday: "short", day: "2-digit", month: "2-digit" },
       listDaySideFormat: false,
 
@@ -279,17 +267,14 @@
 
         const p = info.event.extendedProps || {};
 
-        // Preencher dados do modal
         document.getElementById("m-uvis").innerText = p.uvis || "-";
         document.getElementById("m-foco").innerText = p.foco || "-";
         document.getElementById("m-hora").innerText = p.hora || "-";
 
-        // Badge Status
         const statusEl = document.getElementById("m-status");
         const statusText = p.status || "Indefinido";
         statusEl.innerText = statusText;
 
-        // reset classes
         statusEl.className = "badge rounded-pill px-3 py-2 fs-6";
 
         if (statusText === "APROVADO") statusEl.classList.add("bg-success");
@@ -310,15 +295,12 @@
 
     calendar.render();
 
-    // ✅ Se redimensionar (mobile <-> desktop), troca toolbar e view automaticamente
     window.addEventListener("resize", () => {
       const mobileNow = window.matchMedia("(max-width: 768px)").matches;
 
-      // troca view conforme dispositivo
       const desiredView = mobileNow ? "listWeek" : "dayGridMonth";
       if (calendar.view.type !== desiredView) calendar.changeView(desiredView);
 
-      // troca botões no topo (right)
       calendar.setOption("headerToolbar", {
         left: "prev,next today",
         center: "title",
@@ -328,18 +310,15 @@
   });
 
   if (sidebarToggle) {
-  sidebarToggle.addEventListener("click", () => {
-    if (window.innerWidth < 992) {
-      body.classList.toggle("sidebar-open");
-    } else {
-      body.classList.toggle("sidebar-collapsed");
-    }
-    setTimeout(syncNavbarOffset, 50);
-  });
-}
-
-
+    sidebarToggle.addEventListener("click", () => {
+      if (window.innerWidth < 992) {
+        body.classList.toggle("sidebar-open");
+      } else {
+        body.classList.toggle("sidebar-collapsed");
+      }
+      setTimeout(syncNavbarOffset, 50);
+    });
+  }
 </script>
-
 
 {% endblock %}

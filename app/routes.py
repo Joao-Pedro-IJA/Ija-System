@@ -2381,7 +2381,10 @@ def admin_uvis_listar():
         "admin_uvis_listar.html",
         uvis=paginacao.items,
         paginacao=paginacao,
-        filters=filters
+        filters=filters,
+        q=q,
+        regiao=regiao,
+        codigo_setor=codigo_setor
     )
 
 @bp.route("/admin/uvis/<int:id>/editar", methods=["GET", "POST"], endpoint="admin_uvis_editar")

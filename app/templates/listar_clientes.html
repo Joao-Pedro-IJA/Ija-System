@@ -258,13 +258,14 @@
     </div>
 
 {# --- FILTROS EM SANFONA (CLIENTES) --- #}
-<div class="card shadow-sm rounded-4 mb-4 border-0"
-     data-bs-toggle="collapse"
-     data-bs-target="#collapseFiltrosClientes"
-     style="cursor: pointer;">
+<div class="card shadow-sm rounded-4 mb-4 border-0">
 
-    {# HEADER DA SANFONA #}
-    <div class="card-header border-0 p-3 d-flex justify-content-between align-items-center">
+    {# HEADER DA SANFONA (toggle só aqui) #}
+    <div class="card-header border-0 p-3 d-flex justify-content-between align-items-center"
+         data-bs-toggle="collapse"
+         data-bs-target="#collapseFiltrosClientes"
+         aria-expanded="{{ 'true' if (filters.q or filters.doc or filters.email) else 'false' }}"
+         style="cursor: pointer;">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-funnel-fill text-primary"></i>
             <span class="text-dark">Filtros de Busca</span>
@@ -285,7 +286,7 @@
             <form method="GET" action="{{ url_for('main.listar_clientes') }}">
                 <div class="row g-2 align-items-end">
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="small text-muted mb-1">Busca geral:</label>
                         <input type="text"
                                class="form-control form-control-sm"
@@ -321,14 +322,14 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-success btn-sm w-100">
+                    <div class="col-md-2 d-flex gap-2 flex-column flex-md-row">
+                        <button type="submit" class="btn btn-success btn-sm flex-fill text-nowrap">
                             <i class="bi bi-funnel"></i> Filtrar
                         </button>
 
                         {% if filters.q or filters.doc or filters.email %}
                         <a href="{{ url_for('main.listar_clientes') }}"
-                           class="btn btn-outline-secondary btn-sm w-100">
+                          class="btn btn-outline-secondary btn-sm flex-fill text-nowrap">
                             <i class="bi bi-x-lg"></i> Limpar
                         </a>
                         {% endif %}
