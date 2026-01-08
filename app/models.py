@@ -18,7 +18,17 @@ class Usuario(UserMixin, db.Model):
     login = db.Column(db.String(50), unique=True, nullable=False, index=True)
     senha_hash = db.Column(db.String(200), nullable=False)
 
+    # tipos esperados: "admin", "uvis", "operario", "visualizador", "piloto"
     tipo_usuario = db.Column(db.String(20), default='uvis', index=True)
+
+    # ✅ NOVO: vínculo opcional com a tabela Pilotos (para usuários do tipo "piloto")
+    piloto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("pilotos.id"),
+        nullable=True,
+        index=True
+    )
+    piloto = db.relationship("Pilotos", lazy="joined")
 
     solicitacoes = db.relationship(
         "Solicitacao",
@@ -98,15 +108,27 @@ class Solicitacao(db.Model):
         index=True
     )
 
+    # quem criou (usuário logado)
     usuario_id = db.Column(
         db.Integer,
         db.ForeignKey("usuarios.id"),
         nullable=False,
         index=True
     )
-
     usuario = db.relationship(
         "Usuario",
+        back_populates="solicitacoes"
+    )
+
+    # ✅ NOVO: piloto responsável pela solicitação (para dashboard do piloto)
+    piloto_id = db.Column(
+        db.Integer,
+        db.ForeignKey("pilotos.id"),
+        nullable=True,
+        index=True
+    )
+    piloto = db.relationship(
+        "Pilotos",
         back_populates="solicitacoes"
     )
 
@@ -120,6 +142,12 @@ class Solicitacao(db.Model):
         db.Index(
             "ix_solicitacao_usuario_data",
             "usuario_id",
+            "data_criacao"
+        ),
+        # ✅ NOVO: otimiza listagem do dashboard do piloto
+        db.Index(
+            "ix_solicitacao_piloto_data",
+            "piloto_id",
             "data_criacao"
         ),
     )
@@ -181,10 +209,10 @@ class Clientes(db.Model):
     email = db.Column(db.String(100), index=True)
     endereco = db.Column(db.String(255))
 
+
 # -------------------------------------------------------------
 # PILOTOS
 # -------------------------------------------------------------
-
 class Pilotos(db.Model):
     __tablename__ = "pilotos"
 
@@ -195,5 +223,12 @@ class Pilotos(db.Model):
         nullable=False,
         index=True
     )
-    regiao = db.Column(db.String(20))    
-    telefone = db.Column(db.String(20))    
+    regiao = db.Column(db.String(20))
+    telefone = db.Column(db.String(20))
+
+    # ✅ NOVO: relacionamento reverso para ver solicitações atribuídas ao piloto
+    solicitacoes = db.relationship(
+        "Solicitacao",
+        back_populates="piloto",
+        lazy="select"
+    )
