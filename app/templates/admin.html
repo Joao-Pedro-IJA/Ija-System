@@ -113,7 +113,7 @@
                         "
                 >
                     {# COLUNA 1: IDENTIFICAÇÃO (SEMPRE VISÍVEL) #}
-                    <td class="ps-3 py-3">
+                    <td class="ps-3 py-3 m-0 align-top">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="d-flex flex-column">
 
@@ -227,34 +227,24 @@
                                         <option value="APROVADO" {% if p.status=='APROVADO' %}selected{% endif %}>🟢 Aprovar</option>
                                         <option value="NEGADO" {% if p.status=='NEGADO' %}selected{% endif %}>🔴 Negar</option>
                                     </select>
-<<<<<<< HEAD
 
                                     <label class="form-label mt-2">Piloto responsável</label>
-                                    <select class="form-select form-select-sm" name="piloto_id" {% if not is_editable %}disabled{% endif %}>
-                                        <option value="">— Selecione —</option>
-                                        {% for pilot in pilotos %}
-                                            <option value="{{ pilot.id }}" {% if p.piloto_id == pilot.id %}selected{% endif %}>
+                                        <select class="form-select form-select-sm" name="piloto_id" {% if not is_editable %}disabled{% endif %}>
+                                            {# ✅ opção para LIMPAR #}
+                                            <option value="" {% if not p.piloto_id %}selected{% endif %}>— Sem piloto (remover atribuição) —</option>
+
+                                            {# (opcional) separador visual #}
+                                            <option value="" disabled>────────────</option>
+
+                                            {# lista normal #}
+                                            {% for pilot in pilotos %}
+                                                <option value="{{ pilot.id }}" {% if p.piloto_id == pilot.id %}selected{% endif %}>
                                                 {{ pilot.nome_piloto }}{% if pilot.regiao %} ({{ pilot.regiao }}){% endif %}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
-=======
-                                <label class="form-label mt-2">Piloto responsável</label>
-<select class="form-select form-select-sm" name="piloto_id" {% if not is_editable %}disabled{% endif %}>
-  {# ✅ opção para LIMPAR #}
-  <option value="" {% if not p.piloto_id %}selected{% endif %}>— Sem piloto (remover atribuição) —</option>
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    <label class="form-label mt-2">Piloto responsável</label>
 
-  {# (opcional) separador visual #}
-  <option value="" disabled>────────────</option>
-
-  {# lista normal #}
-  {% for pilot in pilotos %}
-    <option value="{{ pilot.id }}" {% if p.piloto_id == pilot.id %}selected{% endif %}>
-      {{ pilot.nome_piloto }}{% if pilot.regiao %} ({{ pilot.regiao }}){% endif %}
-    </option>
-  {% endfor %}
-</select>
->>>>>>> 014fcfa6e8740682454e8f2f2fd299322613c6a7
 
                                     <div id="boxJustificativa{{ p.id }}" style="display: none;" class="mb-2">
                                         <input name="justificativa" id="inputJustificativa{{ p.id }}" class="form-control form-control-sm" value="{{ p.justificativa or '' }}" placeholder="Justificativa">
