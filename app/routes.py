@@ -3666,10 +3666,41 @@ def serve_sw():
 def only_digits(v: str) -> str:
     return re.sub(r"\D+", "", v or "")
 
+import re
+import math
+from datetime import datetime
+from io import BytesIO
+
+from flask import request, render_template, flash, redirect, url_for, abort, send_file
+from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash
+
+from app import db
+from app.models import Pilotos, Usuario  # ajuste o import conforme sua estrutura
+
+
+def only_digits(v: str) -> str:
+    return re.sub(r"\D+", "", v or "")
+
+
+def format_phone_br(digits: str) -> str:
+    d = only_digits(digits)
+    if len(d) == 10:
+        return f"({d[:2]}) {d[2:6]}-{d[6:]}"
+    if len(d) == 11:
+        return f"({d[:2]}) {d[2:7]}-{d[7:]}"
+    return digits or ""
+
+
+REGIOES = {"NORTE", "SUL", "LESTE", "OESTE"}
+
+
+# -------------------------------------------------------------
+# CADASTRAR PILOTO + CRIAR USUÁRIO (tipo_usuario="piloto")
+# -------------------------------------------------------------
 @bp.route('/pilotos/cadastrar', methods=['GET', 'POST'], endpoint='cadastrar_pilotos')
 @login_required
 def cadastrar_pilotos():
-    # Segurança: só admin
     if getattr(current_user, "tipo_usuario", None) != "admin":
         abort(403)
 
@@ -3677,78 +3708,113 @@ def cadastrar_pilotos():
     form = {}
 
     if request.method == "POST":
+        # dados do piloto
         nome_piloto = (request.form.get("nome_piloto") or "").strip()
-        regiao = (request.form.get("regiao") or "").strip()
+        regiao = (request.form.get("regiao") or "").strip().upper()
         telefone = (request.form.get("telefone") or "").strip()
+        tel_digits = only_digits(telefone)
 
-        # Mantém valores pra re-render do form
+        # credenciais do usuário piloto
+        login = (request.form.get("login") or "").strip()
+        senha = (request.form.get("senha") or "")
+        senha2 = (request.form.get("senha2") or "")
+
         form = {
             "nome_piloto": nome_piloto,
             "regiao": regiao,
             "telefone": telefone,
+            "login": login,
+            "senha": senha,
+            "senha2": senha2,
         }
 
-        # Obrigatórios
+        # validações
         if not nome_piloto:
             errors["nome_piloto"] = "Informe o nome do piloto."
 
-        # Telefone (se preenchido)
-        tel_digits = only_digits(telefone)
-        if telefone:
-            if len(tel_digits) not in (10, 11):
-                errors["telefone"] = "Telefone deve ter 10 ou 11 dígitos (com DDD)."
+        if regiao and regiao not in REGIOES:
+            errors["regiao"] = "Selecione uma região válida."
 
-        # Duplicidade (opcional, mas recomendado)
-        # - Normaliza nome pra evitar duplicar por espaços/case
+        if telefone and len(tel_digits) not in (10, 11):
+            errors["telefone"] = "Telefone deve ter 10 ou 11 dígitos (com DDD)."
+
+        # duplicidade de piloto (nome + telefone se tiver)
         if nome_piloto:
-            q = Pilotos.query.filter(
-                db.func.lower(Pilotos.nome_piloto) == nome_piloto.lower()
-            )
-
-            # Se telefone veio, checa duplicidade nome+telefone
-            # Se não veio telefone, checa duplicidade só por nome
+            q = Pilotos.query.filter(db.func.lower(Pilotos.nome_piloto) == nome_piloto.lower())
             if tel_digits:
                 q = q.filter(Pilotos.telefone == tel_digits)
+            if q.first():
+                errors["nome_piloto"] = "Já existe um piloto com esse nome (e telefone)."
 
-            existe = q.first()
-            if existe:
-                if tel_digits:
-                    errors["nome_piloto"] = "Já existe um piloto com esse nome e telefone."
-                else:
-                    errors["nome_piloto"] = "Já existe um piloto cadastrado com esse nome."
+        # login
+        if not login:
+            errors["login"] = "Informe um login para o piloto."
+        else:
+            existe_login = Usuario.query.filter(db.func.lower(Usuario.login) == login.lower()).first()
+            if existe_login:
+                errors["login"] = "Esse login já está em uso."
+
+        # senha
+        if not senha:
+            errors["senha"] = "Informe uma senha."
+        elif len(senha) < 6:
+            errors["senha"] = "A senha deve ter pelo menos 6 caracteres."
+
+        if senha != senha2:
+            errors["senha2"] = "As senhas não conferem."
 
         if errors:
             flash("Corrija os campos destacados.", "warning")
             return render_template("cadastrar_pilotos.html", form=form, errors=errors)
 
-        novo = Pilotos(
-            nome_piloto=nome_piloto,
-            regiao=regiao or None,
-            telefone=tel_digits or None,  # salva sem máscara
-        )
+        try:
+            # 1) cria piloto
+            novo_piloto = Pilotos(
+                nome_piloto=nome_piloto,
+                regiao=regiao or None,
+                telefone=tel_digits or None,
+            )
+            db.session.add(novo_piloto)
+            db.session.flush()  # garante novo_piloto.id
 
-        db.session.add(novo)
-        db.session.commit()
+            # 2) cria usuário do piloto (nome_uvis é obrigatório no seu model)
+            user_piloto = Usuario(
+                nome_uvis=nome_piloto,          # ✅ obrigatório
+                regiao=regiao or None,          # opcional, mas útil
+                codigo_setor=None,
+                login=login,
+                tipo_usuario="piloto",
+                piloto_id=novo_piloto.id,
+            )
+            user_piloto.set_senha(senha)
 
-        flash("Piloto cadastrado com sucesso!", "success")
-        return redirect(url_for("main.listar_pilotos"))
+            db.session.add(user_piloto)
+            db.session.commit()
+
+            flash("Piloto e usuário criados com sucesso!", "success")
+            return redirect(url_for("main.listar_pilotos"))
+
+        except Exception:
+            db.session.rollback()
+            flash("Erro ao cadastrar piloto/usuário. Tente novamente.", "danger")
+            return render_template("cadastrar_pilotos.html", form=form, errors=errors)
 
     return render_template("cadastrar_pilotos.html", form=form, errors=errors)
 
+
+# -------------------------------------------------------------
+# LISTAR PILOTOS (admin e uvis)
+# -------------------------------------------------------------
 @bp.route("/pilotos", methods=["GET"], endpoint="listar_pilotos")
 @login_required
 def listar_pilotos():
     user_tipo = getattr(current_user, "tipo_usuario", None)
 
-    # ✅ Permissões: admin e uvis podem acessar
     if user_tipo not in ("admin", "uvis"):
         abort(403)
 
-    # -----------------------------
-    # Params (filtros / paginação)
-    # -----------------------------
     q = (request.args.get("q") or "").strip()
-    regiao = (request.args.get("regiao") or "").strip().upper()  # NORTE/SUL/LESTE/OESTE
+    regiao = (request.args.get("regiao") or "").strip().upper()
     telefone = (request.args.get("telefone") or "").strip()
     sort = (request.args.get("sort") or "nome_asc").strip()
 
@@ -3764,42 +3830,33 @@ def listar_pilotos():
         per_page = 20
     per_page = 10 if per_page < 10 else 50 if per_page > 50 else per_page
 
-    export = (request.args.get("export") or "").strip().lower()  # "xlsx"
+    export = (request.args.get("export") or "").strip().lower()
 
-    # -----------------------------
-    # ✅ Controle de região para UVIS
-    # -----------------------------
+    # ✅ Controle de região para UVIS (força a regiao da uvis)
     uvis_regiao = (getattr(current_user, "regiao", None) or "").strip().upper()
-
     if user_tipo == "uvis":
         if not uvis_regiao:
             flash("Sua UVIS está sem região cadastrada. Contate o administrador.", "warning")
-            return render_template("listar_pilotos.html", pilotos=[], filters={
-                "q": q, "regiao": "", "telefone": telefone, "sort": sort,
-                "page": 1, "per_page": per_page, "total": 0, "total_pages": 1
-            }, is_admin=False, uvis_regiao=None)
-
-        # 🔒 Força a região do filtro a ser a mesma da UVIS (ignora querystring)
+            return render_template(
+                "listar_pilotos.html",
+                pilotos=[],
+                filters={"q": q, "regiao": "", "telefone": telefone, "sort": sort, "page": 1, "per_page": per_page, "total": 0, "total_pages": 1},
+                is_admin=False,
+                uvis_regiao=None
+            )
         regiao = uvis_regiao
 
-    # -----------------------------
-    # Query base
-    # -----------------------------
     query = Pilotos.query
 
-    # filtro região
     if regiao:
         query = query.filter(Pilotos.regiao == regiao)
 
-    # filtro telefone (salvo como dígitos)
     if telefone:
         query = query.filter(Pilotos.telefone.ilike(f"%{only_digits(telefone)}%"))
 
-    # busca geral (nome, regiao, telefone)
     if q:
         like = f"%{q}%"
         q_digits = only_digits(q)
-
         query = query.filter(
             db.or_(
                 Pilotos.nome_piloto.ilike(like),
@@ -3808,7 +3865,6 @@ def listar_pilotos():
             )
         )
 
-    # ordenação
     if sort == "nome_desc":
         query = query.order_by(Pilotos.nome_piloto.desc())
     elif sort == "id_desc":
@@ -3819,17 +3875,14 @@ def listar_pilotos():
         query = query.order_by(Pilotos.nome_piloto.asc())
 
     # -----------------------------
-    # Exportação Excel (filtrado)
+    # Exportação Excel
     # -----------------------------
     if export == "xlsx":
-        # 🔒 UVIS exporta apenas sua região (já está forçado acima)
         rows = query.all()
 
         from openpyxl import Workbook
         from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
         from openpyxl.utils import get_column_letter
-        from io import BytesIO
-        from datetime import datetime
 
         wb = Workbook()
         ws = wb.active
@@ -3912,7 +3965,6 @@ def listar_pilotos():
     # -----------------------------
     # Paginação
     # -----------------------------
-    import math
     total = query.count()
     total_pages = max(1, math.ceil(total / per_page))
     if page > total_pages:
@@ -3951,15 +4003,9 @@ def listar_pilotos():
     )
 
 
-import re
-from flask import request, render_template, flash, redirect, url_for, abort
-from flask_login import login_required, current_user
-
-def only_digits(v: str) -> str:
-    return re.sub(r"\D+", "", v or "")
-
-REGIOES = {"NORTE", "SUL", "LESTE", "OESTE"}
-
+# -------------------------------------------------------------
+# EDITAR PILOTO (admin) + atualizar usuário do piloto (login/senha)
+# -------------------------------------------------------------
 @bp.route("/pilotos/<int:piloto_id>/editar", methods=["GET", "POST"], endpoint="editar_piloto")
 @login_required
 def editar_piloto(piloto_id):
@@ -3969,78 +4015,176 @@ def editar_piloto(piloto_id):
 
     piloto = Pilotos.query.get_or_404(piloto_id)
 
+    # usuário de login do piloto (se existir)
+    usuario_piloto = Usuario.query.filter_by(piloto_id=piloto.id, tipo_usuario="piloto").first()
+
     errors = {}
     form = {}
 
     if request.method == "POST":
+        # -----------------------------
+        # Campos do piloto
+        # -----------------------------
         nome_piloto = (request.form.get("nome_piloto") or "").strip()
         regiao = (request.form.get("regiao") or "").strip().upper()
         telefone = (request.form.get("telefone") or "").strip()
         tel_digits = only_digits(telefone)
 
-        # mantém valores pro template
+        # -----------------------------
+        # Campos de acesso (login)
+        # -----------------------------
+        login = (request.form.get("login") or "").strip()
+        senha = (request.form.get("senha") or "").strip()
+        senha2 = (request.form.get("senha2") or "").strip()
+
+        # Mantém valores para re-render
         form = {
             "nome_piloto": nome_piloto,
             "regiao": regiao,
             "telefone": telefone,
+            "login": login,
+            # nunca re-render senha por segurança
         }
 
-        # obrigatórios
+        # -----------------------------
+        # Validações piloto
+        # -----------------------------
         if not nome_piloto:
             errors["nome_piloto"] = "Informe o nome do piloto."
 
-        # região (select)
         if regiao and regiao not in REGIOES:
             errors["regiao"] = "Selecione uma região válida."
 
-        # telefone (se preenchido)
         if telefone and len(tel_digits) not in (10, 11):
             errors["telefone"] = "Telefone deve ter 10 ou 11 dígitos (com DDD)."
 
-        # duplicidade (nome + telefone) ignorando o próprio registro
+        # duplicidade ignorando o próprio
         if nome_piloto:
-            q = Pilotos.query.filter(
-                db.func.lower(Pilotos.nome_piloto) == nome_piloto.lower()
-            )
+            q = Pilotos.query.filter(db.func.lower(Pilotos.nome_piloto) == nome_piloto.lower())
             if tel_digits:
                 q = q.filter(Pilotos.telefone == tel_digits)
-
             q = q.filter(Pilotos.id != piloto.id)
-            existe = q.first()
-            if existe:
+            if q.first():
                 errors["nome_piloto"] = "Já existe um piloto com esse nome (e telefone)."
+
+        # -----------------------------
+        # Validações acesso
+        # -----------------------------
+        if not login:
+            errors["login"] = "Informe o login do piloto."
+
+        # login único (tirando o próprio usuario_piloto)
+        if login:
+            q_login = Usuario.query.filter(db.func.lower(Usuario.login) == login.lower())
+            if usuario_piloto:
+                q_login = q_login.filter(Usuario.id != usuario_piloto.id)
+            if q_login.first():
+                errors["login"] = "Este login já está em uso. Escolha outro."
+
+        # senha: opcional no editar
+        if senha or senha2:
+            if len(senha) < 4:
+                errors["senha"] = "A senha deve ter pelo menos 4 caracteres."
+            if senha != senha2:
+                errors["senha2"] = "As senhas não conferem."
 
         if errors:
             flash("Corrija os campos destacados.", "warning")
-            return render_template("editar_piloto.html", piloto=piloto, form=form, errors=errors)
+            return render_template(
+                "editar_piloto.html",
+                piloto=piloto,
+                form=form,
+                errors=errors,
+                usuario_piloto=usuario_piloto
+            )
 
-        # salva
+        # -----------------------------
+        # Salva piloto
+        # -----------------------------
         piloto.nome_piloto = nome_piloto
         piloto.regiao = regiao or None
         piloto.telefone = tel_digits or None
+
+        # -----------------------------
+        # Salva/Cria usuário do piloto
+        # -----------------------------
+        if not usuario_piloto:
+            # se por algum motivo não existir, cria agora
+            usuario_piloto = Usuario(
+                nome_uvis=nome_piloto,
+                regiao=regiao or None,
+                codigo_setor=None,
+                login=login,
+                tipo_usuario="piloto",
+                piloto_id=piloto.id
+            )
+            # se admin não informou senha ao "editar", força criar uma
+            if not senha:
+                errors["senha"] = "Defina uma senha para criar o acesso do piloto."
+                flash("Corrija os campos destacados.", "warning")
+                return render_template(
+                    "editar_piloto.html",
+                    piloto=piloto,
+                    form=form,
+                    errors=errors,
+                    usuario_piloto=usuario_piloto
+                )
+            usuario_piloto.set_senha(senha)
+            db.session.add(usuario_piloto)
+        else:
+            # atualiza dados básicos do usuario
+            usuario_piloto.nome_uvis = nome_piloto
+            usuario_piloto.regiao = regiao or None
+            usuario_piloto.login = login
+
+            # troca senha somente se veio preenchida
+            if senha:
+                usuario_piloto.set_senha(senha)
 
         db.session.commit()
 
         flash("Piloto atualizado com sucesso!", "success")
         return redirect(url_for("main.listar_pilotos"))
 
-    return render_template("editar_piloto.html", piloto=piloto, form=form, errors=errors)
+    # -----------------------------
+    # GET: valores default
+    # -----------------------------
+    form = {
+        "nome_piloto": piloto.nome_piloto,
+        "regiao": (piloto.regiao or ""),
+        "telefone": format_phone_br(piloto.telefone or ""),
+        "login": (usuario_piloto.login if usuario_piloto else ""),
+    }
+
+    return render_template(
+        "editar_piloto.html",
+        piloto=piloto,
+        form=form,
+        errors=errors,
+        usuario_piloto=usuario_piloto
+    )
 
 
+# -------------------------------------------------------------
+# DELETAR PILOTO (admin) + deletar usuário do piloto (se existir)
+# -------------------------------------------------------------
 @bp.route("/pilotos/<int:piloto_id>/deletar", methods=["POST"], endpoint="deletar_piloto")
 @login_required
 def deletar_piloto(piloto_id):
-    # Segurança: só admin
     if getattr(current_user, "tipo_usuario", None) != "admin":
         abort(403)
 
     piloto = Pilotos.query.get_or_404(piloto_id)
+
+    # apaga usuário(s) vinculados a esse piloto
+    Usuario.query.filter_by(piloto_id=piloto.id, tipo_usuario="piloto").delete(synchronize_session=False)
 
     db.session.delete(piloto)
     db.session.commit()
 
     flash("Piloto excluído com sucesso.", "success")
     return redirect(url_for("main.listar_pilotos"))
+
 
 @bp.route('/piloto/os')
 @login_required
@@ -4101,38 +4245,4 @@ def piloto_concluir_os(os_id):
     flash("Ordem de serviço concluída com sucesso.", "success")
     return redirect(url_for('main.piloto_os'))
 
-@bp.route("/piloto/os/<int:solicitacao_id>", methods=["GET"], endpoint="piloto_ver_os")
-@login_required
-@roles_required("piloto")
-def piloto_ver_os(solicitacao_id):
-    s = (Solicitacao.query
-         .options(
-             joinedload(Solicitacao.usuario),
-             joinedload(Solicitacao.piloto)
-         )
-         .get_or_404(solicitacao_id))
-
-    # 🔒 piloto só pode ver OS dele
-    if s.piloto_id != current_user.piloto_id:
-        flash("Acesso negado a esta OS.", "danger")
-        return redirect(url_for("main.piloto_os"))
-
-    # ✅ somente leitura
-    is_editable = False
-
-    # ✅ mesma lista de pilotos do admin NÃO precisa aqui
-    pilotos = []
-
-    # 🔥 Reaproveita o mesmo HTML do admin, só que em modo read-only
-    return render_template(
-        "admin_editar_completo.html",   # ou o template de “detalhe” que o admin usa
-        pedido=s,
-        is_editable=is_editable,
-        pilotos=pilotos,
-        # se o template usa essas listas:
-        status_opcoes=["PENDENTE","EM ANÁLISE","APROVADO","APROVADO COM RECOMENDAÇÕES","NEGADO"],
-        foco_opcoes=["Foco 1","Foco 2","Foco 3"],
-        tipo_visita_opcoes=["Tipo 1","Tipo 2","Tipo 3"],
-        uf_opcoes=["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"],
-    )
 

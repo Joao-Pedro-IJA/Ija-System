@@ -227,16 +227,21 @@
                                         <option value="NEGADO" {% if p.status=='NEGADO' %}selected{% endif %}>🔴 Negar</option>
                                     </select>
                                 <label class="form-label mt-2">Piloto responsável</label>
-                                    <select class="form-select form-select-sm" name="piloto_id" {% if not is_editable %}disabled{% endif %}>
-                                        <option value="">— Selecione —</option>
-                                        {% for pilot in pilotos %}
-                                            <option value="{{ pilot.id }}" {% if p.piloto_id == pilot.id %}selected{% endif %}>
-                                                {{ pilot.nome_piloto }}{% if pilot.regiao %} ({{ pilot.regiao }}){% endif %}
-                                            </option>
-                                        {% endfor %}
+<select class="form-select form-select-sm" name="piloto_id" {% if not is_editable %}disabled{% endif %}>
+  {# ✅ opção para LIMPAR #}
+  <option value="" {% if not p.piloto_id %}selected{% endif %}>— Sem piloto (remover atribuição) —</option>
 
-                                    </select>
-                                    
+  {# (opcional) separador visual #}
+  <option value="" disabled>────────────</option>
+
+  {# lista normal #}
+  {% for pilot in pilotos %}
+    <option value="{{ pilot.id }}" {% if p.piloto_id == pilot.id %}selected{% endif %}>
+      {{ pilot.nome_piloto }}{% if pilot.regiao %} ({{ pilot.regiao }}){% endif %}
+    </option>
+  {% endfor %}
+</select>
+
                                     <div id="boxJustificativa{{ p.id }}" style="display: none;" class="mb-2">
                                         <input name="justificativa" id="inputJustificativa{{ p.id }}" class="form-control form-control-sm" value="{{ p.justificativa or '' }}" placeholder="Justificativa">
                                     </div>

@@ -2,17 +2,35 @@
 {% block extra_styles %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}">
 {% endblock %}
+
 {% block content %}
 
 <div class="container-fluid py-4" style="max-width: 1200px;">
 
   {# --- Cabeçalho --- #}
   <div class="d-flex align-items-center justify-content-between mb-4">
-    <h2 class="text-dark m-0">
-      <i class="bi bi-person-gear me-2 text-primary"></i> Editar Piloto
-    </h2>
+    <div>
+      <h2 class="text-dark m-0">
+        <i class="bi bi-person-gear me-2 text-primary"></i> Editar Piloto
+      </h2>
+      <p class="text-muted small mb-0">
+        Atualize os dados do piloto e, se necessário, as credenciais de acesso.
+      </p>
+    </div>
     <small class="text-muted fw-bold">ID: #{{ piloto.id }}</small>
   </div>
+
+  {# --- Mensagens de Feedback --- #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4 rounded-3" role="alert">
+          <i class="bi bi-info-circle me-2"></i> {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
   {# --- Card Principal --- #}
   <div class="card info status-primary shadow-sm rounded-4 border-0">
@@ -22,7 +40,7 @@
 
         {# SEÇÃO 1: IDENTIFICAÇÃO #}
         <div class="d-flex align-items-center mb-3">
-          <i class="bi bi-person-badge text-primary me-2 fs-5"></i>
+          <i class="bi bi-card-heading text-primary me-2 fs-5"></i>
           <h5 class="m-0 text-primary fw-bold">Identificação</h5>
         </div>
 
@@ -36,7 +54,8 @@
               class="form-control {% if errors.get('nome_piloto') %}is-invalid{% endif %}"
               name="nome_piloto"
               value="{{ form.get('nome_piloto', piloto.nome_piloto) }}"
-              requiredA required
+              placeholder="Ex: João Silva"
+              required
             />
             {% if errors.get('nome_piloto') %}
               <div class="invalid-feedback">{{ errors.get('nome_piloto') }}</div>
@@ -48,16 +67,13 @@
               <i class="bi bi-geo-alt me-1 text-primary"></i> Região
             </label>
 
-            <select
-              name="regiao"
-              class="form-select {% if errors.get('regiao') %}is-invalid{% endif %}"
-            >
-              {% set reg_atual = (form.get('regiao', piloto.regiao) or '')|upper %}
+            {% set reg = (form.get('regiao', piloto.regiao) or '')|upper %}
+            <select name="regiao" class="form-select {% if errors.get('regiao') %}is-invalid{% endif %}">
               <option value="">Selecione...</option>
-              <option value="NORTE" {% if reg_atual == 'NORTE' %}selected{% endif %}>NORTE</option>
-              <option value="SUL" {% if reg_atual == 'SUL' %}selected{% endif %}>SUL</option>
-              <option value="LESTE" {% if reg_atual == 'LESTE' %}selected{% endif %}>LESTE</option>
-              <option value="OESTE" {% if reg_atual == 'OESTE' %}selected{% endif %}>OESTE</option>
+              <option value="NORTE" {% if reg == 'NORTE' %}selected{% endif %}>NORTE</option>
+              <option value="SUL" {% if reg == 'SUL' %}selected{% endif %}>SUL</option>
+              <option value="LESTE" {% if reg == 'LESTE' %}selected{% endif %}>LESTE</option>
+              <option value="OESTE" {% if reg == 'OESTE' %}selected{% endif %}>OESTE</option>
             </select>
 
             {% if errors.get('regiao') %}
@@ -66,36 +82,111 @@
           </div>
         </div>
 
-        <hr class="text-muted opacity-25 my-4">
+        <hr class="text-muted opacity-25 my-4" />
 
         {# SEÇÃO 2: CONTATO #}
         <div class="d-flex align-items-center mb-3">
-          <i class="bi bi-telephone text-primary me-2 fs-5"></i>
+          <i class="bi bi-telephone-fill text-primary me-2 fs-5"></i>
           <h5 class="m-0 text-primary fw-bold">Contato</h5>
         </div>
 
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
             <label class="form-label fw-bold small text-muted">
               <i class="bi bi-whatsapp me-1 text-primary"></i> Telefone
             </label>
             <input
               type="text"
-              class="form-control {% if errors.get('telefone') %}is-invalid{% endif %}"
-              name="telefone"
               id="telefone"
+              name="telefone"
+              class="form-control {% if errors.get('telefone') %}is-invalid{% endif %}"
               value="{{ form.get('telefone', piloto.telefone) }}"
               inputmode="numeric"
               placeholder="(00) 00000-0000"
+              autocomplete="off"
             />
             {% if errors.get('telefone') %}
               <div class="invalid-feedback">{{ errors.get('telefone') }}</div>
             {% endif %}
+            <div class="form-text small">
+              Digite só números — o sistema formata automaticamente.
+            </div>
           </div>
         </div>
 
-        {# BOTÕES DE AÇÃO #}
+        <hr class="text-muted opacity-25 my-4" />
+
+        {# SEÇÃO 3: ACESSO (LOGIN) #}
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-key-fill text-primary me-2 fs-5"></i>
+          <h5 class="m-0 text-primary fw-bold">Acesso (Login)</h5>
+        </div>
+
+        <div class="row g-3 mb-2">
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+              <i class="bi bi-person-lock me-1 text-primary"></i> Login do Piloto *
+            </label>
+            <input
+              type="text"
+              class="form-control {% if errors.get('login') %}is-invalid{% endif %}"
+              name="login"
+              value="{{ form.get('login', (usuario_piloto.login if usuario_piloto else '')) }}"
+              placeholder="ex: joao.silva"
+              required
+              autocomplete="off"
+            />
+            {% if errors.get('login') %}
+              <div class="invalid-feedback">{{ errors.get('login') }}</div>
+            {% endif %}
+            <div class="form-text small">
+              Este é o usuário que o piloto usará para entrar no sistema.
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+              <i class="bi bi-shield-lock me-1 text-primary"></i> Nova senha
+            </label>
+            <input
+              type="password"
+              class="form-control {% if errors.get('senha') %}is-invalid{% endif %}"
+              name="senha"
+              value=""
+              placeholder="Deixe em branco para não alterar"
+              autocomplete="new-password"
+            />
+            {% if errors.get('senha') %}
+              <div class="invalid-feedback">{{ errors.get('senha') }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">
+              <i class="bi bi-shield-check me-1 text-primary"></i> Confirmar nova senha
+            </label>
+            <input
+              type="password"
+              class="form-control {% if errors.get('senha2') %}is-invalid{% endif %}"
+              name="senha2"
+              value=""
+              placeholder="Repita a nova senha"
+              autocomplete="new-password"
+            />
+            {% if errors.get('senha2') %}
+              <div class="invalid-feedback">{{ errors.get('senha2') }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <small class="text-muted d-block mt-3">
+          Para trocar a senha, preencha <strong>Nova senha</strong> e <strong>Confirmar nova senha</strong>.
+          Se deixar em branco, a senha atual será mantida.
+        </small>
+
+        {# BOTÕES #}
         <div class="d-flex justify-content-between align-items-center mt-5">
+
           <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalExcluir">
             <i class="bi bi-trash me-1"></i> Excluir Piloto
           </button>
@@ -104,10 +195,12 @@
             <a href="{{ url_for('main.listar_pilotos') }}" class="btn btn-outline-secondary px-4">
               Cancelar
             </a>
+
             <button type="submit" class="btn btn-primary px-5 shadow-sm fw-bold">
               <i class="bi bi-check-lg me-1"></i> Salvar Alterações
             </button>
           </div>
+
         </div>
 
       </form>
@@ -125,7 +218,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Tem certeza que deseja excluir o piloto <strong>{{ piloto.nome_piloto }}</strong>? Esta ação não pode ser desfeita.
+        Tem certeza que deseja excluir o piloto <strong>{{ piloto.nome_piloto }}</strong>?
+        <div class="text-muted small mt-1">Esta ação não pode ser desfeita.</div>
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
@@ -137,6 +231,9 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
   function onlyDigits(v) {
     return (v || "").replace(/\D/g, "");
@@ -150,12 +247,14 @@
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   }
 
-  const telInput = document.getElementById("telefone");
-  if (telInput) {
-    telInput.addEventListener("input", (e) => {
-      e.target.value = maskTelefone(e.target.value);
-    });
-  }
+  document.addEventListener("DOMContentLoaded", () => {
+    const telInput = document.getElementById("telefone");
+    if (telInput) {
+      telInput.value = maskTelefone(telInput.value);
+      telInput.addEventListener("input", (e) => {
+        e.target.value = maskTelefone(e.target.value);
+      });
+    }
+  });
 </script>
-
 {% endblock %}

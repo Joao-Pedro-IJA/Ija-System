@@ -105,6 +105,65 @@
             </div>
           </div>
         </div>
+<hr class="text-muted opacity-25 my-4" />
+
+<div class="d-flex align-items-center mb-3">
+  <i class="bi bi-key-fill text-primary me-2 fs-5"></i>
+  <h5 class="m-0 text-primary fw-bold">Acesso (Login)</h5>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <label class="form-label fw-bold small text-muted">
+      <i class="bi bi-person-lock me-1 text-primary"></i> Login do Piloto *
+    </label>
+    <input
+      type="text"
+      class="form-control {% if errors.get('login') %}is-invalid{% endif %}"
+      name="login"
+      value="{{ form.get('login','') }}"
+      placeholder="ex: joao.silva"
+      required
+    />
+    {% if errors.get('login') %}
+      <div class="invalid-feedback">{{ errors.get('login') }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label fw-bold small text-muted">
+      <i class="bi bi-shield-lock me-1 text-primary"></i> Senha *
+    </label>
+    <input
+      type="password"
+      class="form-control {% if errors.get('senha') %}is-invalid{% endif %}"
+      name="senha"
+      value="{{ form.get('senha','') }}"
+      placeholder="Crie uma senha"
+      required
+    />
+    {% if errors.get('senha') %}
+      <div class="invalid-feedback">{{ errors.get('senha') }}</div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label fw-bold small text-muted">
+      <i class="bi bi-shield-check me-1 text-primary"></i> Confirmar senha *
+    </label>
+    <input
+      type="password"
+      class="form-control {% if errors.get('senha2') %}is-invalid{% endif %}"
+      name="senha2"
+      value="{{ form.get('senha2','') }}"
+      placeholder="Repita a senha"
+      required
+    />
+    {% if errors.get('senha2') %}
+      <div class="invalid-feedback">{{ errors.get('senha2') }}</div>
+    {% endif %}
+  </div>
+</div>
 
         <small class="text-muted d-block mt-4">
           Campos com <span class="text-danger">*</span> são de preenchimento obrigatório.
