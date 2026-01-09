@@ -312,17 +312,19 @@ body.dark-mode) ========================= #}
             />
           </div>
 
-          <div class="col-md-3">
-            <label for="search_regiao" class="small text-muted">Região:</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              name="regiao"
-              id="search_regiao"
-              value="{{ regiao }}"
-              placeholder="Ex: Norte"
-            />
-          </div>
+       <div class="col-md-3">
+        <label for="search_regiao" class="small text-muted">Região:</label>
+
+        {% set reg = (regiao or '')|upper %}
+
+        <select class="form-select form-select-sm" name="regiao" id="search_regiao">
+          <option value="">Todas</option>
+          <option value="NORTE" {% if reg == 'NORTE' %}selected{% endif %}>NORTE</option>
+          <option value="SUL" {% if reg == 'SUL' %}selected{% endif %}>SUL</option>
+          <option value="LESTE" {% if reg == 'LESTE' %}selected{% endif %}>LESTE</option>
+          <option value="OESTE" {% if reg == 'OESTE' %}selected{% endif %}>OESTE</option>
+        </select>
+      </div>
 
           <div class="col-md-3">
             <label for="search_codigo" class="small text-muted">Cód. Setor:</label>

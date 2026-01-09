@@ -68,9 +68,18 @@
                             <label class="small text-muted">Unidade:</label>
                             <input type="text" name="unidade" class="form-control form-control-sm" placeholder="Nome da UVIS..." value="{{ request.args.get('unidade', '') }}">
                         </div>
-                        <div class="col-md-3">
-                            <label class="small text-muted">Região:</label>
-                            <input type="text" name="regiao" class="form-control form-control-sm" placeholder="Leste, Oeste..." value="{{ request.args.get('regiao', '') }}">
+                       <div class="col-md-3">
+                        <label class="small text-muted">Região:</label>
+
+                        {% set reg = (request.args.get('regiao','') or '')|upper %}
+
+                        <select name="regiao" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            <option value="NORTE" {% if reg == 'NORTE' %}selected{% endif %}>NORTE</option>
+                            <option value="SUL" {% if reg == 'SUL' %}selected{% endif %}>SUL</option>
+                            <option value="LESTE" {% if reg == 'LESTE' %}selected{% endif %}>LESTE</option>
+                            <option value="OESTE" {% if reg == 'OESTE' %}selected{% endif %}>OESTE</option>
+                        </select>
                         </div>
                         <div class="col-md-3 d-flex gap-2">
                             <button class="btn btn-success btn-sm w-100" type="submit"><i class="bi bi-search"></i> Buscar</button>
