@@ -2264,10 +2264,9 @@ UVIS_FAQ = [
     },
     {
         "title": "Suporte",
-        "keywords": ["suporte", "erro", "acesso", "login", "senha"],
-        "answer": (
-            "Se a dúvida for de **erro de acesso**, inconsistência de **CEP/endereço**, ou algo fora do fluxo: "
-            "entre em contato com o time de desenvolvimento/suporte da IJA."
+        "keywords": ["suporte", "erro", "acesso", "login", "senha", "ajuda", "Suporte", "Ajuda"],
+        "answer": (            
+            "Entre em contato com o time de suporte da IJA: **suporte@ijadrones.com.br.**"
         ),
     },
 ]
